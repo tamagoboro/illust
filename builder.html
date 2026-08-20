@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>イラスト依頼フォーム・ビルダー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Zen Maru Gothic', sans-serif; } </style>
+</head>
+<body class="bg-amber-50/40 text-slate-700 min-h-screen flex flex-col">
+
+    <!-- ヘッダー -->
+    <header class="bg-white/80 backdrop-blur border-b-2 border-amber-100 px-6 py-3 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="bg-pink-500 text-white font-black px-3 py-1.5 rounded-2xl text-lg shadow-sm -rotate-2">🎨 フォーム工房</div>
+            <span class="text-xs font-bold text-slate-400">カンタン＆カスタム自在</span>
+        </div>
+        <div id="authSection" class="flex items-center space-x-3"></div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <div class="flex-1 flex max-w-7xl mx-auto w-full p-6 gap-6">
+        <!-- 左：エディタ -->
+        <div class="w-7/12 space-y-6">
+            <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
+                <h2 class="font-black text-slate-800 text-base">✨ デザイン・URL設定</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 block mb-1">メインテーマカラー</label>
+                        <input type="color" id="themeColor" value="#ec4899" onchange="updatePreview()" class="h-10 w-16 rounded-xl border-2 border-slate-200 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 block mb-1">フォームID (公開URL末尾)</label>
+                        <input type="text" id="handleInput" placeholder="例: aoi_illust" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-bold focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
+                <h2 class="font-black text-slate-800 text-base">📝 フォーム基本情報</h2>
+                <input type="text" id="formTitle" value="イラストご依頼フォーム" oninput="updatePreview()" class="w-full px-4 py-3 text-lg font-black bg-slate-50 border-2 border-slate-200 rounded-2xl">
+                <textarea id="formDesc" oninput="updatePreview()" rows="2" class="w-full px-4 py-2.5 text-sm font-bold bg-slate-50 border-2 border-slate-200 rounded-2xl" placeholder="ご挨拶や注意事項など"></textarea>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="font-black text-slate-800 text-base">🧩 設問ブロック</h2>
+                    <button onclick="addBlock()" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-black text-xs rounded-full shadow-md">+ 項目追加</button>
+                </div>
+                <div id="blocksContainer" class="space-y-4"></div>
+            </div>
+
+            <button onclick="saveForm()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base rounded-2xl shadow-lg transition transform hover:-translate-y-0.5">🚀 フォームを保存・公開</button>
+        </div>
+
+        <!-- 右：プレビュー -->
+        <div class="w-5/12 sticky top-20 h-[calc(100vh-100px)] flex flex-col">
+            <div class="bg-white rounded-[40px] shadow-2xl border-8 border-slate-800 p-6 overflow-y-auto flex flex-col justify-between h-full">
+                <div class="space-y-6">
+                    <div>
+                        <span id="pBadge" class="text-[10px] font-black px-3 py-1 rounded-full text-white bg-pink-500">ご依頼受付中</span>
+                        <h1 id="pTitle" class="text-xl font-black text-slate-800 mt-2"></h1>
+                        <p id="pDesc" class="text-xs font-bold text-slate-400 mt-1"></p>
+                    </div>
+                    <div id="pFields" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ログインモーダル -->
+    <div id="loginModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 font-bold">✕</button>
+            <h3 class="text-xl font-black text-slate-800 text-center">アカウント認証</h3>
+            <div class="space-y-3">
+                <input type="email" id="authEmail" placeholder="your@email.com" class="w-full px-4 py-3 bg-slate-50 border-2 rounded-2xl text-xs font-bold">
+                <input type="password" id="authPassword" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border-2 rounded-2xl text-xs font-bold">
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="handleLogin()" class="py-3 bg-pink-500 text-white font-black text-xs rounded-2xl shadow">ログイン</button>
+                    <button onclick="handleSignUp()" class="py-3 bg-slate-100 text-slate-700 font-black text-xs rounded-2xl">新規アカウント作成</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URLコピーモーダル -->
+    <div id="copyModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border-2 border-slate-100 space-y-4 text-center">
+            <div class="text-3xl">🎉</div>
+            <h3 class="text-lg font-black text-slate-800">フォームを保存・公開しました！</h3>
+            <p class="text-xs font-bold text-slate-400">以下のURLをコピーして依頼者に共有してください</p>
+            
+            <div class="flex items-center gap-2 bg-slate-50 border-2 border-slate-200 rounded-2xl p-2">
+                <input type="text" id="publishedUrl" readonly class="w-full bg-transparent text-xs font-bold text-slate-600 px-2 focus:outline-none">
+                <button onclick="copyToClipboard()" id="copyBtn" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white text-xs font-black rounded-xl transition whitespace-nowrap">
+                    コピー
+                </button>
+            </div>
+
+            <button onclick="closeCopyModal()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <!-- 全処理スクリプト -->
+    <script>
+        let currentUser = null;
+let fields = [
+    { id: 'f1', label: '描画範囲', type: 'select', options: [{ label: 'アイコン', price: 0 }, { label: '全身', price: 5000 }] },
+    { id: 'f2', label: 'メインイメージカラー', type: 'color' },
+    { id: 'f3', label: '追加オプション', type: 'checkbox', options: [{ label: '背景を描き込む', price: 2000 }, { label: '差分（表情違い）', price: 1500 }] },
+    { id: 'f4', label: '参考イラストのURL', type: 'url' },
+    { id: 'f5', label: '希望納期', type: 'date' },
+    { id: 'f6', label: '要望テキスト', type: 'text' }
+];
+
+const TYPE_LABELS = {
+    text: 'テキスト入力',
+    select: 'カード選択肢（単一・金額可）',
+    checkbox: 'チェックボックス（複数選択・金額可）',
+    color: 'カラーパレット',
+    url: '参考URL入力',
+    date: '希望納期（日付）'
+};
+
+window.addEventListener('DOMContentLoaded', async () => {
+    currentUser = await AuthApp.getUser();
+    renderAuthHeader();
+    renderBlocks();
+    updatePreview();
+});
+
+function renderAuthHeader() {
+    const container = document.getElementById('authSection');
+    if (currentUser) {
+        container.innerHTML = `
+            <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
+            <span class="text-xs font-bold text-slate-500">${currentUser.email}</span>
+            <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
+        `;
+    } else {
+        container.innerHTML = `<button onclick="openAuthModal()" class="px-4 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">ログイン / 新規登録</button>`;
+    }
+}
+
+function openAuthModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+function closeAuthModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+function openCopyModal(url) {
+    document.getElementById('publishedUrl').value = url;
+    document.getElementById('copyModal').classList.remove('hidden');
+}
+
+function closeCopyModal() {
+    document.getElementById('copyModal').classList.add('hidden');
+}
+
+async function copyToClipboard() {
+    const urlInput = document.getElementById('publishedUrl');
+    const copyBtn = document.getElementById('copyBtn');
+
+    try {
+        await navigator.clipboard.writeText(urlInput.value);
+        copyBtn.textContent = 'コピー完了！';
+        copyBtn.classList.replace('bg-pink-500', 'bg-emerald-500');
+        
+        setTimeout(() => {
+            copyBtn.textContent = 'コピー';
+            copyBtn.classList.replace('bg-emerald-500', 'bg-pink-500');
+        }, 2000);
+    } catch (err) {
+        urlInput.select();
+        document.execCommand('copy');
+        alert('URLをコピーしました');
+    }
+}
+
+async function handleLogin() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    try {
+        currentUser = await AuthApp.loginWithEmail(email, password);
+        renderAuthHeader(); closeAuthModal(); alert("ログイン成功！");
+    } catch (e) { alert("ログイン失敗: " + e.message); }
+}
+
+async function handleSignUp() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    try {
+        currentUser = await AuthApp.signUpWithEmail(email, password);
+        renderAuthHeader(); closeAuthModal(); alert("アカウントを作成しました！");
+    } catch (e) { alert("登録失敗: " + e.message); }
+}
+
+function hasOptions(type) {
+    return type === 'select' || type === 'checkbox';
+}
+
+function renderBlocks() {
+    const container = document.getElementById('blocksContainer');
+    container.innerHTML = fields.map((f, idx) => `
+        <div class="bg-white rounded-2xl p-4 border-2 border-slate-100 space-y-3">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-black text-pink-500">項目 #${idx + 1}</span>
+                <button onclick="fields.splice(${idx},1); renderBlocks(); updatePreview();" class="text-xs text-red-400">削除</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" value="${f.label}" oninput="fields[${idx}].label=this.value; updatePreview();" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
+                <select onchange="changeType(${idx}, this.value)" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
+                    ${Object.entries(TYPE_LABELS).map(([val, label]) => `<option value="${val}" ${f.type===val?'selected':''}>${label}</option>`).join('')}
+                </select>
+            </div>
+            ${hasOptions(f.type) ? renderOptionsEditor(f, idx) : ''}
+        </div>
+    `).join('');
+}
+
+function renderOptionsEditor(f, idx) {
+    const opts = f.options || [];
+    return `
+        <div class="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-slate-400">選択肢（名称・金額）</span>
+                <button onclick="addOption(${idx})" class="text-[10px] font-black text-pink-500">+ 選択肢追加</button>
+            </div>
+            ${opts.map((o, oi) => `
+                <div class="flex items-center gap-2">
+                    <input type="text" value="${o.label}" placeholder="選択肢名" oninput="fields[${idx}].options[${oi}].label=this.value; updatePreview();" class="flex-1 px-2 py-1.5 text-xs font-bold border rounded-lg">
+                    <span class="text-[10px] text-slate-400 font-bold">¥</span>
+                    <input type="number" value="${o.price || 0}" placeholder="0" oninput="fields[${idx}].options[${oi}].price=Number(this.value); updatePreview();" class="w-20 px-2 py-1.5 text-xs font-bold border rounded-lg">
+                    <button onclick="fields[${idx}].options.splice(${oi},1); renderBlocks(); updatePreview();" class="text-red-400 text-xs">✕</button>
+                </div>
+            `).join('')}
+            ${opts.length === 0 ? '<p class="text-[10px] text-slate-300 font-bold">選択肢がありません。追加してください。</p>' : ''}
+        </div>
+    `;
+}
+
+function changeType(idx, newType) {
+    fields[idx].type = newType;
+    if (hasOptions(newType) && !fields[idx].options) {
+        fields[idx].options = [{ label: '選択肢1', price: 0 }];
+    }
+    renderBlocks();
+    updatePreview();
+}
+
+function addOption(idx) {
+    if (!fields[idx].options) fields[idx].options = [];
+    fields[idx].options.push({ label: '新しい選択肢', price: 0 });
+    renderBlocks();
+    updatePreview();
+}
+
+function addBlock() {
+    fields.push({ id: 'f_' + Date.now(), label: '新しい質問', type: 'text' });
+    renderBlocks();
+    updatePreview();
+}
+
+function updatePreview() {
+    const themeColor = document.getElementById('themeColor').value;
+    document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
+    document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
+    document.getElementById('pBadge').style.backgroundColor = themeColor;
+
+    let hasPricing = false;
+    document.getElementById('pFields').innerHTML = fields.map(f => {
+        if (f.type === 'color') {
+            return `
+                <div class="space-y-1">
+                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                    <div class="flex items-center gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-2xl">
+                        <input type="color" value="#ec4899" disabled class="h-8 w-12 rounded-xl border-0 bg-transparent cursor-pointer">
+                        <span class="text-xs font-bold text-slate-400">カラーパレット（色選択）</span>
+                    </div>
+                </div>`;
+        }
+        if (f.type === 'select' || f.type === 'checkbox') {
+            hasPricing = hasPricing || (f.options || []).some(o => o.price);
+            return `
+                <div class="space-y-1">
+                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                    <div class="flex flex-wrap gap-2">
+                        ${(f.options || []).map(o => `
+                            <span class="text-[10px] font-bold px-2.5 py-1.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-500">
+                                ${f.type === 'checkbox' ? '☐' : '○'} ${o.label}${o.price ? ` (+¥${o.price.toLocaleString()})` : ''}
+                            </span>
+                        `).join('') || '<span class="text-[10px] text-slate-300 font-bold">選択肢未設定</span>'}
+                    </div>
+                </div>`;
+        }
+        if (f.type === 'url') {
+            return `
+                <div class="space-y-1">
+                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                    <input type="text" disabled placeholder="https://... (Pinterest, X, portfolioなど)" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+                </div>`;
+        }
+        if (f.type === 'date') {
+            return `
+                <div class="space-y-1">
+                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                    <input type="date" disabled class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+                </div>`;
+        }
+        return `
+            <div class="space-y-1">
+                <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                <input type="text" disabled placeholder="入力欄" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+            </div>`;
+    }).join('');
+
+    const totalWrap = document.getElementById('pTotalWrap');
+    if (hasPricing) {
+        totalWrap.classList.remove('hidden');
+        document.getElementById('pTotal').textContent = '¥0〜（依頼者が選択すると自動計算）';
+        document.getElementById('pTotal').style.color = themeColor;
+    } else {
+        totalWrap.classList.add('hidden');
+    }
+}
+
+async function saveForm() {
+    if (!currentUser) { openAuthModal(); return; }
+    const handle = document.getElementById('handleInput').value.trim();
+    if (!handle) return alert("フォームIDを入力してください。");
+
+    const payload = {
+        user_id: currentUser.id,
+        handle: handle,
+        title: document.getElementById('formTitle').value,
+        description: document.getElementById('formDesc').value,
+        theme_color: document.getElementById('themeColor').value,
+        fields: fields,
+        updated_at: new Date().toISOString()
+    };
+
+    const success = await LocalDB.saveFormSettingsAsync(payload);
+    if (success) {
+        const formUrl = `${window.location.origin}/form.html?u=${handle}`;
+        openCopyModal(formUrl);
+    } else {
+        alert("保存に失敗しました。");
+    }
+}
+    </script>
+</body>
+</html>

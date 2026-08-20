@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>依頼履歴</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="flex-between" style="margin-bottom:20px;">
+    <h2>📤 送信済み依頼履歴</h2>
+    <div style="display:flex; gap:8px;">
+      <button onclick="location.href='builder.html'" class="btn btn-sec">クリエイター画面</button>
+      <button onclick="LocalDB.logout()" class="btn btn-sec">ログアウト</button>
+    </div>
+  </div>
+
+  <div id="historyContainer">読み込み中...</div>
+</div>
+
+<script>
+  async function init() {
+    const user = LocalDB.getCurrentUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+
+    const container = document.getElementById('historyContainer');
+    const projects = await LocalDB.getClientProjectsAsync(user.email);
+
+    if (projects.length === 0) {
+      container.innerHTML = `<div class="card" style="color:var(--text-muted)">送信した依頼はありません。</div>`;
+      return;
+    }
+
+    container.innerHTML = projects.map(p => `
+      <div class="card">
+        <div class="flex-between">
+          <span style="font-weight:bold;">送信先: @${p.target_handle} 様</span>
+          <span class="badge">¥${Number(p.price).toLocaleString()}</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin: 6px 0;">送信日時: ${new Date(p.created_at).toLocaleString('ja-JP')}</div>
+        <div style="background:var(--bg); padding:10px; border-radius:8px; font-size:13px; margin-top:8px;">
+          ${Object.entries(p.answers || {}).map(([k,v]) => `<div><b>${k}:</b> ${v}</div>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  init();
+</script>
+</body>
+</html>

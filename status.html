@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>依頼進行状況確認</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+        <div class="border-b pb-4">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">案件トラッキング</span>
+            <h1 class="text-xl font-bold text-slate-800 mt-1">ご依頼進行状況</h1>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-500">クリエイター:</span>
+                <span id="creatorHandle" class="text-sm font-bold text-slate-700"></span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-500">確定見積もり金額:</span>
+                <span id="finalPrice" class="text-lg font-black text-indigo-600"></span>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl space-y-2">
+                <span class="text-xs font-bold text-slate-500 block">現在の進捗ステータス:</span>
+                <div id="statusBadge" class="inline-block px-4 py-1.5 rounded-full text-white text-sm font-bold shadow-sm">
+                    確認中...
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t pt-4">
+            <h3 class="text-xs font-bold text-slate-500 mb-2">送信済み内容サマリー</h3>
+            <div id="answersSummary" class="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg space-y-1 max-h-40 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+
+            if (!token) {
+                alert('アクセストークンが指定されていません。');
+                return;
+            }
+
+            const { data: project, error } = await supabase
+                .from('projects')
+                .select('*')
+                .eq('access_token', token)
+                .single();
+
+            if (error || !project) {
+                alert('案件が見つかりませんでした。');
+                return;
+            }
+
+            document.getElementById('creatorHandle').textContent = `@${project.target_handle}`;
+            document.getElementById('finalPrice').textContent = `¥${Number(project.price).toLocaleString()}`;
+            
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = project.status;
+            badge.style.backgroundColor = project.status_color || '#3b82f6';
+
+            const summary = document.getElementById('answersSummary');
+            summary.innerHTML = Object.entries(project.answers || {}).map(([k, v]) => `
+                <div><b>${k}:</b> ${typeof v === 'object' ? v.label : v}</div>
+            `).join('');
+        }
+
+        fetchStatus();
+    </script>
+</body>
+</html>

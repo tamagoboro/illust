@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>依頼フォーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
+    <script src="config.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Zen Maru Gothic', sans-serif; } </style>
+</head>
+<body class="bg-slate-50 text-slate-700 min-h-screen p-4 sm:p-8 flex justify-center items-center">
+
+    <div class="bg-white rounded-[40px] shadow-2xl border-4 border-slate-100 p-6 sm:p-10 max-w-xl w-full space-y-8">
+        <div>
+            <span id="badge" class="text-xs font-black px-4 py-1.5 rounded-full text-white bg-pink-500 inline-block mb-3">ご依頼受付中</span>
+            <h1 id="title" class="text-2xl sm:text-3xl font-black text-slate-800">読み込み中...</h1>
+            <p id="desc" class="text-xs sm:text-sm font-bold text-slate-400 mt-2 whitespace-pre-wrap"></p>
+        </div>
+
+        <form id="orderForm" onsubmit="submitOrder(event)" class="space-y-6">
+            <div id="dynamicFields" class="space-y-6"></div>
+
+            <div id="totalWrap" class="hidden bg-slate-50 rounded-2xl p-4 flex justify-between items-center border-2 border-slate-100">
+                <span class="text-xs font-black text-slate-500">概算お見積り合計</span>
+                <span id="totalPrice" class="text-xl font-black">¥0</span>
+            </div>
+
+            <div class="space-y-4 pt-4 border-t-2 border-slate-100">
+                <h3 class="text-sm font-black text-slate-800">✉️ 連絡先情報</h3>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">お名前・名義 *</label>
+                    <input type="text" id="clientName" required placeholder="山田 太郎" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none focus:border-pink-500">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">メールアドレス *</label>
+                    <input type="email" id="clientEmail" required placeholder="your@email.com" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none focus:border-pink-500">
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full py-4 bg-pink-500 hover:bg-pink-600 text-white font-black text-base rounded-2xl shadow-lg transition">送信する</button>
+        </form>
+    </div>
+
+    <script>
+        let currentFormConfig = null;
+        const params = new URLSearchParams(window.location.search);
+        const handle = params.get('u');
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!handle) return alert("フォームが見つかりません。URLを確認してください。");
+            currentFormConfig = await LocalDB.getFormSettingsAsync(handle);
+            if (!currentFormConfig) return alert("指定されたフォームは存在しません。");
+
+            renderForm();
+        });
+
+        function isValidHttpUrl(str) {
+            try {
+                const u = new URL(str);
+                return u.protocol === 'http:' || u.protocol === 'https:';
+            } catch { return false; }
+        }
+
+        function renderForm() {
+            const config = currentFormConfig;
+            const themeColor = config.theme_color || '#ec4899';
+            document.getElementById('title').textContent = config.title;
+            document.getElementById('desc').textContent = config.description || '';
+            document.getElementById('badge').style.backgroundColor = themeColor;
+            document.getElementById('submitBtn').style.backgroundColor = themeColor;
+
+            const today = new Date().toISOString().split('T')[0];
+            const container = document.getElementById('dynamicFields');
+            let hasPricing = false;
+
+            container.innerHTML = (config.fields || []).map((f, i) => {
+                if (f.type === 'color') {
+                    return `
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border-2 border-slate-100">
+                                <input type="color" name="field_${i}" value="#ec4899" class="h-10 w-16 rounded-xl border-0 bg-transparent cursor-pointer">
+                                <span class="text-xs font-bold text-slate-500">好きな色を選択してください</span>
+                            </div>
+                        </div>`;
+                }
+                if (f.type === 'select') {
+                    hasPricing = hasPricing || (f.options || []).some(o => o.price);
+                    return `
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <div class="grid grid-cols-2 gap-2" data-select-group="${i}">
+                                ${(f.options || []).map((o, oi) => `
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="field_${i}" value="${o.label}" data-price="${o.price || 0}" class="hidden peer" onchange="updateTotal()" ${oi === 0 ? 'checked' : ''}>
+                                        <div class="px-3 py-2.5 text-xs font-bold border-2 rounded-xl border-slate-100 bg-slate-50 peer-checked:border-pink-400 peer-checked:bg-pink-50 peer-checked:text-pink-600 text-center">
+                                            ${o.label}${o.price ? `<div class="text-[10px] font-black opacity-70">+¥${o.price.toLocaleString()}</div>` : ''}
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                }
+                if (f.type === 'checkbox') {
+                    hasPricing = hasPricing || (f.options || []).some(o => o.price);
+                    return `
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${(f.options || []).map((o, oi) => `
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" name="field_${i}_${oi}" data-group="field_${i}" value="${o.label}" data-price="${o.price || 0}" class="hidden peer" onchange="updateTotal()">
+                                        <div class="px-3 py-2.5 text-xs font-bold border-2 rounded-xl border-slate-100 bg-slate-50 peer-checked:border-pink-400 peer-checked:bg-pink-50 peer-checked:text-pink-600 text-center">
+                                            ${o.label}${o.price ? `<div class="text-[10px] font-black opacity-70">+¥${o.price.toLocaleString()}</div>` : ''}
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                }
+                if (f.type === 'url') {
+                    return `
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <input type="url" name="field_${i}" placeholder="https://pinterest.com/... など" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none">
+                            <p class="text-[10px] font-bold text-slate-300">画像そのものではなく、参考にしたい投稿やページのURLを貼ってください</p>
+                        </div>`;
+                }
+                if (f.type === 'date') {
+                    return `
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <input type="date" name="field_${i}" min="${today}" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none">
+                        </div>`;
+                }
+                return `
+                    <div class="space-y-2">
+                        <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                        <input type="text" name="field_${i}" placeholder="入力してください" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none">
+                    </div>`;
+            }).join('');
+
+            if (hasPricing) {
+                document.getElementById('totalWrap').classList.remove('hidden');
+                document.getElementById('totalPrice').style.color = themeColor;
+                updateTotal();
+            }
+        }
+
+        function updateTotal() {
+            let total = 0;
+            document.querySelectorAll('#dynamicFields input[data-price]').forEach(el => {
+                if (el.type === 'radio' && el.checked) total += Number(el.dataset.price || 0);
+                if (el.type === 'checkbox' && el.checked) total += Number(el.dataset.price || 0);
+            });
+            const el = document.getElementById('totalPrice');
+            if (el) el.textContent = `¥${total.toLocaleString()}`;
+        }
+
+        async function submitOrder(e) {
+            e.preventDefault();
+            const answers = {};
+            let total = 0;
+            let urlError = false;
+
+            (currentFormConfig.fields || []).forEach((f, i) => {
+                if (f.type === 'checkbox') {
+                    const checked = Array.from(document.querySelectorAll(`input[data-group="field_${i}"]:checked`));
+                    answers[f.label] = checked.map(c => c.value).join('、') || '(選択なし)';
+                    checked.forEach(c => total += Number(c.dataset.price || 0));
+                    return;
+                }
+                const el = document.querySelector(`[name="field_${i}"]`);
+                if (!el) return;
+                if (f.type === 'select') {
+                    const checkedEl = document.querySelector(`[name="field_${i}"]:checked`);
+                    answers[f.label] = checkedEl ? checkedEl.value : '';
+                    if (checkedEl) total += Number(checkedEl.dataset.price || 0);
+                    return;
+                }
+                if (f.type === 'url' && el.value.trim() && !isValidHttpUrl(el.value.trim())) {
+                    urlError = true;
+                }
+                answers[f.label] = el.value;
+            });
+
+            if (urlError) {
+                alert("参考URLの形式が正しくありません。http(s)://から始まるURLを入力してください。");
+                return;
+            }
+
+            const orderData = {
+                handle: handle,
+                client_name: document.getElementById('clientName').value,
+                client_email: document.getElementById('clientEmail').value,
+                answers: answers,
+                total_price: total,
+                created_at: new Date().toISOString()
+            };
+
+            const success = await LocalDB.saveOrderAsync(orderData);
+            if (success) {
+                alert("送信が完了しました！ご依頼ありがとうございます。");
+                document.getElementById('orderForm').reset();
+                updateTotal();
+            } else {
+                alert("送信に失敗しました。時間をおいて再試行してください。");
+            }
+        }
+    </script>
+</body>
+</html>
