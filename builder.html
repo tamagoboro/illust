@@ -110,247 +110,239 @@
 
     <!-- 全処理スクリプト -->
     <script>
-        let currentUser = null;
-let fields = [
-    { id: 'f1', label: '描画範囲', type: 'select', options: [{ label: 'アイコン', price: 0 }, { label: '全身', price: 5000 }] },
-    { id: 'f2', label: 'メインイメージカラー', type: 'color' },
-    { id: 'f3', label: '追加オプション', type: 'checkbox', options: [{ label: '背景を描き込む', price: 2000 }, { label: '差分（表情違い）', price: 1500 }] },
-    { id: 'f4', label: '参考イラストのURL', type: 'url' },
-    { id: 'f5', label: '希望納期', type: 'date' },
-    { id: 'f6', label: '要望テキスト', type: 'text' }
-];
+       let currentUser = null;
+        let fields = [
+            { id: 'f1', label: '描画範囲', type: 'select', options: [{ label: 'アイコン', price: 0 }, { label: '全身', price: 5000 }] },
+            { id: 'f2', label: 'メインイメージカラー', type: 'color' },
+            { id: 'f3', label: '追加オプション', type: 'checkbox', options: [{ label: '背景を描き込む', price: 2000 }, { label: '差分（表情違い）', price: 1500 }] },
+            { id: 'f4', label: '参考イラストのURL', type: 'url' },
+            { id: 'f5', label: '希望納期', type: 'date' },
+            { id: 'f6', label: '要望テキスト', type: 'text' }
+        ];
 
-const TYPE_LABELS = {
-    text: 'テキスト入力',
-    select: 'カード選択肢（単一・金額可）',
-    checkbox: 'チェックボックス（複数選択・金額可）',
-    color: 'カラーパレット',
-    url: '参考URL入力',
-    date: '希望納期（日付）'
-};
+        const TYPE_LABELS = {
+            text: 'テキスト入力',
+            select: 'カード選択肢（単一・金額可）',
+            checkbox: 'チェックボックス（複数選択・金額可）',
+            color: 'カラーパレット',
+            url: '参考URL入力',
+            date: '希望納期（日付）'
+        };
 
-window.addEventListener('DOMContentLoaded', async () => {
-    currentUser = await AuthApp.getUser();
-    renderAuthHeader();
-    renderBlocks();
-    updatePreview();
-});
+        window.addEventListener('DOMContentLoaded', async () => {
+            currentUser = await AuthApp.getUser();
+            renderAuthHeader();
+            renderBlocks();
+            updatePreview();
+        });
 
-function renderAuthHeader() {
-    const container = document.getElementById('authSection');
-    if (currentUser) {
-        container.innerHTML = `
-            <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
-            <span class="text-xs font-bold text-slate-500">${currentUser.email}</span>
-            <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
-        `;
-    } else {
-        container.innerHTML = `<button onclick="openAuthModal()" class="px-4 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">ログイン / 新規登録</button>`;
-    }
-}
+        function renderAuthHeader() {
+            const container = document.getElementById('authSection');
+            if (currentUser) {
+                // dashboard.html へのリンクも相対パスに修正
+                container.innerHTML = `
+                    <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
+                    <span class="text-xs font-bold text-slate-500 hidden sm:inline">${currentUser.email}</span>
+                    <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
+                `;
+            } else {
+                container.innerHTML = `<button onclick="openAuthModal()" class="px-4 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">ログイン / 新規登録</button>`;
+            }
+        }
 
-function openAuthModal() { document.getElementById('loginModal').classList.remove('hidden'); }
-function closeAuthModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        function openAuthModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeAuthModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        function openCopyModal(url) {
+            document.getElementById('publishedUrl').value = url;
+            document.getElementById('copyModal').classList.remove('hidden');
+        }
+        function closeCopyModal() { document.getElementById('copyModal').classList.add('hidden'); }
 
-function openCopyModal(url) {
-    document.getElementById('publishedUrl').value = url;
-    document.getElementById('copyModal').classList.remove('hidden');
-}
+        async function copyToClipboard() {
+            const urlInput = document.getElementById('publishedUrl');
+            const copyBtn = document.getElementById('copyBtn');
+            try {
+                await navigator.clipboard.writeText(urlInput.value);
+                copyBtn.textContent = 'コピー完了！';
+                copyBtn.classList.replace('bg-pink-500', 'bg-emerald-500');
+                setTimeout(() => {
+                    copyBtn.textContent = 'コピー';
+                    copyBtn.classList.replace('bg-emerald-500', 'bg-pink-500');
+                }, 2000);
+            } catch (err) {
+                urlInput.select();
+                document.execCommand('copy');
+                alert('URLをコピーしました');
+            }
+        }
 
-function closeCopyModal() {
-    document.getElementById('copyModal').classList.add('hidden');
-}
+        async function handleLogin() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            try {
+                currentUser = await AuthApp.loginWithEmail(email, password);
+                renderAuthHeader(); closeAuthModal(); alert("ログイン成功！");
+            } catch (e) { alert("ログイン失敗: " + e.message); }
+        }
 
-async function copyToClipboard() {
-    const urlInput = document.getElementById('publishedUrl');
-    const copyBtn = document.getElementById('copyBtn');
+        async function handleSignUp() {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            try {
+                currentUser = await AuthApp.signUpWithEmail(email, password);
+                renderAuthHeader(); closeAuthModal(); alert("アカウントを作成しました！");
+            } catch (e) { alert("登録失敗: " + e.message); }
+        }
 
-    try {
-        await navigator.clipboard.writeText(urlInput.value);
-        copyBtn.textContent = 'コピー完了！';
-        copyBtn.classList.replace('bg-pink-500', 'bg-emerald-500');
-        
-        setTimeout(() => {
-            copyBtn.textContent = 'コピー';
-            copyBtn.classList.replace('bg-emerald-500', 'bg-pink-500');
-        }, 2000);
-    } catch (err) {
-        urlInput.select();
-        document.execCommand('copy');
-        alert('URLをコピーしました');
-    }
-}
+        function hasOptions(type) { return type === 'select' || type === 'checkbox'; }
 
-async function handleLogin() {
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value;
-    try {
-        currentUser = await AuthApp.loginWithEmail(email, password);
-        renderAuthHeader(); closeAuthModal(); alert("ログイン成功！");
-    } catch (e) { alert("ログイン失敗: " + e.message); }
-}
-
-async function handleSignUp() {
-    const email = document.getElementById('authEmail').value.trim();
-    const password = document.getElementById('authPassword').value;
-    try {
-        currentUser = await AuthApp.signUpWithEmail(email, password);
-        renderAuthHeader(); closeAuthModal(); alert("アカウントを作成しました！");
-    } catch (e) { alert("登録失敗: " + e.message); }
-}
-
-function hasOptions(type) {
-    return type === 'select' || type === 'checkbox';
-}
-
-function renderBlocks() {
-    const container = document.getElementById('blocksContainer');
-    container.innerHTML = fields.map((f, idx) => `
-        <div class="bg-white rounded-2xl p-4 border-2 border-slate-100 space-y-3">
-            <div class="flex justify-between items-center">
-                <span class="text-xs font-black text-pink-500">項目 #${idx + 1}</span>
-                <button onclick="fields.splice(${idx},1); renderBlocks(); updatePreview();" class="text-xs text-red-400">削除</button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <input type="text" value="${f.label}" oninput="fields[${idx}].label=this.value; updatePreview();" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
-                <select onchange="changeType(${idx}, this.value)" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
-                    ${Object.entries(TYPE_LABELS).map(([val, label]) => `<option value="${val}" ${f.type===val?'selected':''}>${label}</option>`).join('')}
-                </select>
-            </div>
-            ${hasOptions(f.type) ? renderOptionsEditor(f, idx) : ''}
-        </div>
-    `).join('');
-}
-
-function renderOptionsEditor(f, idx) {
-    const opts = f.options || [];
-    return `
-        <div class="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
-            <div class="flex justify-between items-center">
-                <span class="text-[10px] font-black text-slate-400">選択肢（名称・金額）</span>
-                <button onclick="addOption(${idx})" class="text-[10px] font-black text-pink-500">+ 選択肢追加</button>
-            </div>
-            ${opts.map((o, oi) => `
-                <div class="flex items-center gap-2">
-                    <input type="text" value="${o.label}" placeholder="選択肢名" oninput="fields[${idx}].options[${oi}].label=this.value; updatePreview();" class="flex-1 px-2 py-1.5 text-xs font-bold border rounded-lg">
-                    <span class="text-[10px] text-slate-400 font-bold">¥</span>
-                    <input type="number" value="${o.price || 0}" placeholder="0" oninput="fields[${idx}].options[${oi}].price=Number(this.value); updatePreview();" class="w-20 px-2 py-1.5 text-xs font-bold border rounded-lg">
-                    <button onclick="fields[${idx}].options.splice(${oi},1); renderBlocks(); updatePreview();" class="text-red-400 text-xs">✕</button>
+        function renderBlocks() {
+            const container = document.getElementById('blocksContainer');
+            container.innerHTML = fields.map((f, idx) => `
+                <div class="bg-white rounded-2xl p-4 border-2 border-slate-100 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-pink-500">項目 #${idx + 1}</span>
+                        <button onclick="fields.splice(${idx},1); renderBlocks(); updatePreview();" class="text-xs text-red-400">削除</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" value="${f.label}" oninput="fields[${idx}].label=this.value; updatePreview();" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
+                        <select onchange="changeType(${idx}, this.value)" class="px-3 py-1.5 text-xs font-bold border rounded-xl">
+                            ${Object.entries(TYPE_LABELS).map(([val, label]) => `<option value="${val}" ${f.type===val?'selected':''}>${label}</option>`).join('')}
+                        </select>
+                    </div>
+                    ${hasOptions(f.type) ? renderOptionsEditor(f, idx) : ''}
                 </div>
-            `).join('')}
-            ${opts.length === 0 ? '<p class="text-[10px] text-slate-300 font-bold">選択肢がありません。追加してください。</p>' : ''}
-        </div>
-    `;
-}
+            `).join('');
+        }
 
-function changeType(idx, newType) {
-    fields[idx].type = newType;
-    if (hasOptions(newType) && !fields[idx].options) {
-        fields[idx].options = [{ label: '選択肢1', price: 0 }];
-    }
-    renderBlocks();
-    updatePreview();
-}
-
-function addOption(idx) {
-    if (!fields[idx].options) fields[idx].options = [];
-    fields[idx].options.push({ label: '新しい選択肢', price: 0 });
-    renderBlocks();
-    updatePreview();
-}
-
-function addBlock() {
-    fields.push({ id: 'f_' + Date.now(), label: '新しい質問', type: 'text' });
-    renderBlocks();
-    updatePreview();
-}
-
-function updatePreview() {
-    const themeColor = document.getElementById('themeColor').value;
-    document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
-    document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
-    document.getElementById('pBadge').style.backgroundColor = themeColor;
-
-    let hasPricing = false;
-    document.getElementById('pFields').innerHTML = fields.map(f => {
-        if (f.type === 'color') {
+        function renderOptionsEditor(f, idx) {
+            const opts = f.options || [];
             return `
-                <div class="space-y-1">
-                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
-                    <div class="flex items-center gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-2xl">
-                        <input type="color" value="#ec4899" disabled class="h-8 w-12 rounded-xl border-0 bg-transparent cursor-pointer">
-                        <span class="text-xs font-bold text-slate-400">カラーパレット（色選択）</span>
+                <div class="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-black text-slate-400">選択肢（名称・金額）</span>
+                        <button onclick="addOption(${idx})" class="text-[10px] font-black text-pink-500">+ 選択肢追加</button>
                     </div>
-                </div>`;
+                    ${opts.map((o, oi) => `
+                        <div class="flex items-center gap-2">
+                            <input type="text" value="${o.label}" placeholder="選択肢名" oninput="fields[${idx}].options[${oi}].label=this.value; updatePreview();" class="flex-1 px-2 py-1.5 text-xs font-bold border rounded-lg">
+                            <span class="text-[10px] text-slate-400 font-bold">¥</span>
+                            <input type="number" value="${o.price || 0}" placeholder="0" oninput="fields[${idx}].options[${oi}].price=Number(this.value); updatePreview();" class="w-20 px-2 py-1.5 text-xs font-bold border rounded-lg">
+                            <button onclick="fields[${idx}].options.splice(${oi},1); renderBlocks(); updatePreview();" class="text-red-400 text-xs">✕</button>
+                        </div>
+                    `).join('')}
+                    ${opts.length === 0 ? '<p class="text-[10px] text-slate-300 font-bold">選択肢がありません。追加してください。</p>' : ''}
+                </div>
+            `;
         }
-        if (f.type === 'select' || f.type === 'checkbox') {
-            hasPricing = hasPricing || (f.options || []).some(o => o.price);
-            return `
-                <div class="space-y-1">
-                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
-                    <div class="flex flex-wrap gap-2">
-                        ${(f.options || []).map(o => `
-                            <span class="text-[10px] font-bold px-2.5 py-1.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-500">
-                                ${f.type === 'checkbox' ? '☐' : '○'} ${o.label}${o.price ? ` (+¥${o.price.toLocaleString()})` : ''}
-                            </span>
-                        `).join('') || '<span class="text-[10px] text-slate-300 font-bold">選択肢未設定</span>'}
-                    </div>
-                </div>`;
+
+        function changeType(idx, newType) {
+            fields[idx].type = newType;
+            if (hasOptions(newType) && !fields[idx].options) fields[idx].options = [{ label: '選択肢1', price: 0 }];
+            renderBlocks();
+            updatePreview();
         }
-        if (f.type === 'url') {
-            return `
-                <div class="space-y-1">
-                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
-                    <input type="text" disabled placeholder="https://... (Pinterest, X, portfolioなど)" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
-                </div>`;
+
+        function addOption(idx) {
+            if (!fields[idx].options) fields[idx].options = [];
+            fields[idx].options.push({ label: '新しい選択肢', price: 0 });
+            renderBlocks();
+            updatePreview();
         }
-        if (f.type === 'date') {
-            return `
-                <div class="space-y-1">
-                    <label class="text-xs font-black text-slate-700 block">${f.label}</label>
-                    <input type="date" disabled class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
-                </div>`;
+
+        function addBlock() {
+            fields.push({ id: 'f_' + Date.now(), label: '新しい質問', type: 'text' });
+            renderBlocks(); updatePreview();
         }
-        return `
-            <div class="space-y-1">
-                <label class="text-xs font-black text-slate-700 block">${f.label}</label>
-                <input type="text" disabled placeholder="入力欄" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
-            </div>`;
-    }).join('');
 
-    const totalWrap = document.getElementById('pTotalWrap');
-    if (hasPricing) {
-        totalWrap.classList.remove('hidden');
-        document.getElementById('pTotal').textContent = '¥0〜（依頼者が選択すると自動計算）';
-        document.getElementById('pTotal').style.color = themeColor;
-    } else {
-        totalWrap.classList.add('hidden');
-    }
-}
+        function updatePreview() {
+            const themeColor = document.getElementById('themeColor').value;
+            document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
+            document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
+            document.getElementById('pBadge').style.backgroundColor = themeColor;
 
-async function saveForm() {
-    if (!currentUser) { openAuthModal(); return; }
-    const handle = document.getElementById('handleInput').value.trim();
-    if (!handle) return alert("フォームIDを入力してください。");
+            let hasPricing = false;
+            document.getElementById('pFields').innerHTML = fields.map(f => {
+                if (f.type === 'color') {
+                    return `
+                        <div class="space-y-1">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <div class="flex items-center gap-3 bg-slate-50 border-2 border-slate-100 p-2 rounded-2xl">
+                                <input type="color" value="#ec4899" disabled class="h-8 w-12 rounded-xl border-0 bg-transparent cursor-pointer">
+                                <span class="text-xs font-bold text-slate-400">カラーパレット（色選択）</span>
+                            </div>
+                        </div>`;
+                }
+                if (f.type === 'select' || f.type === 'checkbox') {
+                    hasPricing = hasPricing || (f.options || []).some(o => o.price);
+                    return `
+                        <div class="space-y-1">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <div class="flex flex-wrap gap-2">
+                                ${(f.options || []).map(o => `
+                                    <span class="text-[10px] font-bold px-2.5 py-1.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-slate-500">
+                                        ${f.type === 'checkbox' ? '☐' : '○'} ${o.label}${o.price ? ` (+¥${o.price.toLocaleString()})` : ''}
+                                    </span>
+                                `).join('') || '<span class="text-[10px] text-slate-300 font-bold">選択肢未設定</span>'}
+                            </div>
+                        </div>`;
+                }
+                if (f.type === 'url') {
+                    return `
+                        <div class="space-y-1">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <input type="text" disabled placeholder="https://... (Pinterest, X, portfolioなど)" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+                        </div>`;
+                }
+                if (f.type === 'date') {
+                    return `
+                        <div class="space-y-1">
+                            <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                            <input type="date" disabled class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+                        </div>`;
+                }
+                return `
+                    <div class="space-y-1">
+                        <label class="text-xs font-black text-slate-700 block">${f.label}</label>
+                        <input type="text" disabled placeholder="入力欄" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs">
+                    </div>`;
+            }).join('');
 
-    const payload = {
-        user_id: currentUser.id,
-        handle: handle,
-        title: document.getElementById('formTitle').value,
-        description: document.getElementById('formDesc').value,
-        theme_color: document.getElementById('themeColor').value,
-        fields: fields,
-        updated_at: new Date().toISOString()
-    };
+            const totalWrap = document.getElementById('pTotalWrap');
+            if (hasPricing) {
+                totalWrap.classList.remove('hidden');
+                document.getElementById('pTotal').textContent = '¥0〜（依頼者が選択すると自動計算）';
+                document.getElementById('pTotal').style.color = themeColor;
+            } else {
+                totalWrap.classList.add('hidden');
+            }
+        }
 
-    const success = await LocalDB.saveFormSettingsAsync(payload);
-    if (success) {
-        const formUrl = `${window.location.origin}/form.html?u=${handle}`;
-        openCopyModal(formUrl);
-    } else {
-        alert("保存に失敗しました。");
-    }
-}
+        async function saveForm() {
+            if (!currentUser) { openAuthModal(); return; }
+            const handle = document.getElementById('handleInput').value.trim();
+            if (!handle) return alert("フォームIDを入力してください。");
+
+            const payload = {
+                user_id: currentUser.id,
+                handle: handle,
+                title: document.getElementById('formTitle').value,
+                description: document.getElementById('formDesc').value,
+                theme_color: document.getElementById('themeColor').value,
+                fields: fields,
+                updated_at: new Date().toISOString()
+            };
+
+            const success = await LocalDB.saveFormSettingsAsync(payload);
+            if (success) {
+                // GitHub Pagesのサブディレクトリ (/illust/) を保持してURLを生成する修正
+                const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                const formUrl = `${window.location.origin}${basePath}form.html?u=${handle}`;
+                openCopyModal(formUrl);
+            } else {
+                alert("保存に失敗しました。");
+            }
+        }
     </script>
 </body>
 </html>
