@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>イラスト依頼管理プロトタイプ</title>
+  <!-- Supabase JS ライブラリの読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+    .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+    label { display: block; margin-top: 10px; }
+    input, select, textarea { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
+    button { margin-top: 15px; padding: 10px 15px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+
+  <h1>イラスト依頼管理（動くプロトタイプ）</h1>
+
+  <!-- 1. クライアント用：依頼送信フォーム -->
+  <div class="box">
+    <h2>【依頼主用】イラスト依頼フォーム</h2>
+    <form id="orderForm">
+      <label>お名前: <input type="text" id="client_name" required></label>
+      <label>メールアドレス: <input type="email" id="client_email" required></label>
+      <label>依頼件名: <input type="text" id="title" placeholder="例：SNSアイコン作成" required></label>
+      <label>予算 (円): <input type="number" id="price" value="10000"></label>
+      <label>希望納期: <input type="date" id="deadline"></label>
+      <button type="submit">依頼を送信する</button>
+    </form>
+  </div>
+
+  <!-- 2. クリエイター用：案件一覧ダッシュボード -->
+  <div class="box">
+    <h2>【クリエイター用】受注案件一覧</h2>
+    <button onclick="fetchProjects()">データを更新</button>
+    <table>
+      <thead>
+        <tr>
+          <th>件名</th>
+          <th>依頼者</th>
+          <th>金額</th>
+          <th>納期</th>
+          <th>ステータス</th>
+          <th>支払状態</th>
+        </tr>
+      </thead>
+      <tbody id="projectList">
+        <!-- ここに動的データが入ります -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // ★ご自身のSupabaseの情報を設定してください★
+    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_KEY = 'YOUR_ANON_KEY';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // テスト用のダミープロフィールID（実際のアプリでは認証機能で取得します）
+    const DUMMY_PROFILE_ID = '00000000-0000-0000-0000-000000000000';
+
+    // データの送信（INSERT）
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const newProject = {
+        profile_id: DUMMY_PROFILE_ID, // 本来はURLの[handle]等から取得
+        client_name: document.getElementById('client_name').value,
+        client_email: document.getElementById('client_email').value,
+        title: document.getElementById('title').value,
+        price: Number(document.getElementById('price').value),
+        deadline: document.getElementById('deadline').value || null,
+        status: 'inquiry',
+        payment_status: 'unpaid'
+      };
+
+      const { data, error } = await supabase.from('projects').insert([newProject]);
+
+      if (error) {
+        alert('エラーが発生しました: ' + error.message);
+      } else {
+        alert('依頼を送信しました！');
+        document.getElementById('orderForm').reset();
+        fetchProjects(); // 一覧を再取得
+      }
+    });
+
+    // データの取得（SELECT）
+    async function fetchProjects() {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('取得失敗:', error);
+        return;
+      }
+
+      const tbody = document.getElementById('projectList');
+      tbody.innerHTML = '';
+
+      data.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.title}</td>
+          <td>${p.client_name}</td>
+          <td>¥${p.price.toLocaleString()}</td>
+          <td>${p.deadline || '未定'}</td>
+          <td>${p.status}</td>
+          <td>${p.payment_status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // 初期表示時に一覧を読み込み
+    fetchProjects();
+  </script>
+</body>
+</html>
