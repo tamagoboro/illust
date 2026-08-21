@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイフォーム一覧 | フォーム工房</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Zen Maru Gothic', sans-serif; } </style>
+</head>
+<body class="bg-amber-50/40 text-slate-700 min-h-screen flex flex-col">
+
+    <header class="bg-white/80 backdrop-blur border-b-2 border-amber-100 px-6 py-3 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center space-x-3">
+            <div class="bg-pink-500 text-white font-black px-3 py-1.5 rounded-2xl text-lg shadow-sm -rotate-2">🎨 フォーム工房</div>
+            <span class="text-xs font-bold text-slate-400">マイフォーム管理</span>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 届いた依頼</a>
+            <a href="builder.html" class="px-3.5 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">+ 新規作成</a>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full p-6 space-y-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-2xl font-black text-slate-800">📋 作成したフォーム一覧</h1>
+        </div>
+
+        <div id="formsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p class="text-xs font-bold text-slate-400">読み込み中...</p>
+        </div>
+    </main>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const user = await AuthApp.getUser();
+            if (!user) {
+                alert("ログインが必要です。");
+                window.location.href = 'builder.html';
+                return;
+            }
+            loadForms();
+        });
+
+        async function loadForms() {
+            const container = document.getElementById('formsContainer');
+            const forms = await LocalDB.getMyFormsAsync();
+
+            if (!forms || forms.length === 0) {
+                container.innerHTML = `<div class="col-span-full bg-white rounded-3xl p-8 text-center text-xs font-bold text-slate-400 border-2 border-slate-100">まだ作成したフォームはありません。右上の「+ 新規作成」から作成してみましょう！</div>`;
+                return;
+            }
+
+            const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+
+            container.innerHTML = forms.map(f => {
+                const publicUrl = `${window.location.origin}${basePath}form.html?u=${f.handle}`;
+                return `
+                    <div class="bg-white rounded-3xl p-6 border-2 border-slate-100 shadow-sm space-y-4 flex flex-col justify-between">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] font-black px-3 py-1 rounded-full text-white" style="background-color: ${f.theme_color || '#ec4899'}">ID: ${f.handle}</span>
+                                <span class="text-[10px] font-bold text-slate-400">${new Date(f.updated_at).toLocaleDateString('ja-JP')} 更新</span>
+                            </div>
+                            <h3 class="text-lg font-black text-slate-800">${f.title}</h3>
+                            <p class="text-xs font-bold text-slate-400 line-clamp-2">${f.description || '説明なし'}</p>
+                        </div>
+
+                        <div class="space-y-2 pt-3 border-t border-slate-100">
+                            <div class="flex items-center gap-2 bg-slate-50 border rounded-xl p-1.5">
+                                <input type="text" readonly value="${publicUrl}" class="w-full bg-transparent text-[11px] font-bold text-slate-500 px-1 focus:outline-none">
+                                <button onclick="navigator.clipboard.writeText('${publicUrl}'); alert('URLをコピーしました！');" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-black rounded-lg whitespace-nowrap">コピー</button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 pt-1">
+                                <a href="builder.html?edit=${f.handle}" class="text-center py-2 bg-amber-100 text-amber-800 font-black text-xs rounded-xl hover:bg-amber-200">✏️ 編集</a>
+                                <button onclick="duplicateForm('${f.handle}')" class="py-2 bg-slate-100 text-slate-700 font-black text-xs rounded-xl hover:bg-slate-200">📋 複製</button>
+                                <button onclick="deleteForm('${f.id}')" class="py-2 bg-red-50 text-red-500 font-black text-xs rounded-xl hover:bg-red-100">🗑 削除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function duplicateForm(handle) {
+            const original = await LocalDB.getFormSettingsAsync(handle);
+            if (!original) return alert("元のデータが見つかりません");
+
+            const newHandle = prompt("複製先の新しいフォームIDを入力してください", `${original.handle}_copy`);
+            if (!newHandle) return;
+
+            const user = await AuthApp.getUser();
+            const newPayload = {
+                user_id: user.id,
+                handle: newHandle,
+                title: `${original.title} (コピー)`,
+                description: original.description,
+                theme_color: original.theme_color,
+                fields: original.fields,
+                updated_at: new Date().toISOString()
+            };
+
+            const success = await LocalDB.saveFormSettingsAsync(newPayload);
+            if (success) {
+                alert("フォームを複製しました！");
+                loadForms();
+            } else {
+                alert("複製に失敗しました。IDが重複している可能性があります。");
+            }
+        }
+
+        async function deleteForm(id) {
+            if (!confirm("本当にこのフォームを削除しますか？")) return;
+            const success = await LocalDB.deleteFormAsync(id);
+            if (success) {
+                loadForms();
+            } else {
+                alert("削除に失敗しました。");
+            }
+        }
+    </script>
+</body>
+</html>
