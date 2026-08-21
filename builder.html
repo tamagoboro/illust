@@ -29,20 +29,32 @@
         <!-- 2. 左側：エディタエリア（フォーム作成・編集UI） -->
         <div class="w-full lg:w-7/12 space-y-6">
             
-            <!-- (A) デザイン・ID設定 -->
-            <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
-                <h2 class="font-black text-slate-800 text-base">✨ 基本・デザイン設定</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 block mb-1">メインテーマカラー</label>
-                        <input type="color" id="themeColor" value="#ec4899" onchange="updatePreview()" class="h-10 w-20 rounded-xl border-2 border-slate-200 cursor-pointer">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 block mb-1">フォームID (公開URLの末尾)</label>
-                        <input type="text" id="handleInput" placeholder="例: order_form_1" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
-                    </div>
-                </div>
-            </div>
+<!-- 基本・デザイン設定の中に配置 -->
+<div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
+    <h2 class="font-black text-slate-800 text-base">✨ 基本・デザイン設定</h2>
+    <div class="grid grid-cols-2 gap-4 items-center">
+        <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">メインテーマカラー</label>
+            <input type="color" id="themeColor" value="#ec4899" onchange="updatePreview()" class="h-10 w-20 rounded-xl border-2 border-slate-200 cursor-pointer">
+        </div>
+        <div>
+            <label class="text-xs font-bold text-slate-500 block mb-1">フォームID (公開URLの末尾)</label>
+            <input type="text" id="handleInput" placeholder="例: order_form_1" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
+        </div>
+    </div>
+
+    <!-- 🟢 追加：受付ステータスの切り替えスイッチ -->
+    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+        <div>
+            <span class="text-xs font-black text-slate-700 block">受付ステータス</span>
+            <span class="text-[10px] font-bold text-slate-400">「停止」にすると公開フォームで送信不可になります</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="isAccepting" checked onchange="updatePreview()" class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+        </label>
+    </div>
+</div>
 
             <!-- (B) フォームのタイトル・説明文 -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
@@ -279,8 +291,18 @@
             document.getElementById('pBadge').style.backgroundColor = themeColor;
             document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
             document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
+            const isAccepting = document.getElementById('isAccepting').checked;
+            const pBadge = document.getElementById('pBadge');
 
             let calculatedTotal = 0;
+
+            if (isAccepting) {
+                pBadge.textContent = '受付中';
+                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-emerald-500';
+            } else {
+                pBadge.textContent = '受付停止中';
+                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
+            }
 
             // プレビュー項目の動的HTML生成
             document.getElementById('pFields').innerHTML = fields.map(f => {

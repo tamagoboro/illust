@@ -73,6 +73,20 @@
             calculateTotal();
         });
 
+        // フォームデータを取得した後の処理
+        if (formData.is_accepting === false) {
+            // 1. バッジの表示を変更
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = '現在受付を停止しています';
+            badge.className = 'px-3 py-1 text-xs font-black text-white bg-slate-400 rounded-full';
+
+            // 2. 送信ボタンを無効化（あるいは警告表示に変える）
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '🔒 現在ご依頼を受け付けておりません';
+            submitBtn.className = 'w-full py-4 bg-slate-300 text-white font-black text-base rounded-2xl cursor-not-allowed';
+        }
+
         /**
          * 取得した設定データを元に、フォーム要素を動的に画面へ描画する関数
          */
