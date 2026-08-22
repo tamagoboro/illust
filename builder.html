@@ -93,6 +93,13 @@
                         <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                 </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500">テーマカラー</label>
+                    <div class="flex items-center space-x-3 mt-1">
+                        <input type="color" id="fThemeColor" value="#ec4899" onchange="saveCurrentFormState()" class="h-10 w-16 rounded-xl border-2 border-slate-200 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-400">フォームのアクセントカラーに適用されます</span>
+                    </div>
+                </div>
             </div>
 
             <!-- (B) フォーム基本情報 -->
@@ -445,25 +452,44 @@ function renderAuthHeader() {
         renderBlocks(); updatePreview();
     }
 
-    function updatePreview() {
-        const themeColor = document.getElementById('themeColor').value;
+function updatePreview() {
+        const themeColor = document.getElementById('themeColor')?.value || '#ec4899';
+        
         document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
         document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
         
         const thanksMsg = document.getElementById('thanksMessage').value;
         document.getElementById('pThanksText').textContent = thanksMsg || "ご依頼ありがとうございます！内容を確認のうえ、ご連絡させていただきます。";
 
+        // 1. 送信ボタンの色
+        const pSubmitBtn = document.getElementById('pSubmitBtn');
+        if (pSubmitBtn) pSubmitBtn.style.backgroundColor = themeColor;
+
+        // 2. 見積もり金額テキスト＆背景枠の色
+        const pTotalPrice = document.getElementById('pTotalPrice');
+        if (pTotalPrice) {
+            pTotalPrice.style.color = themeColor;
+            const priceBox = pTotalPrice.parentElement;
+            if (priceBox) {
+                priceBox.style.backgroundColor = `${themeColor}10`; // 不透明度 約6%
+                priceBox.style.borderColor = `${themeColor}25`;     // 不透明度 約15%
+            }
+        }
+
+        // 3. 受付ステータスバッジ
         const isAccepting = document.getElementById('isAccepting').checked;
         const pBadge = document.getElementById('pBadge');
 
-        if (isAccepting) {
-            pBadge.textContent = '受付中';
-            pBadge.style.backgroundColor = themeColor;
-            pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white';
-        } else {
-            pBadge.textContent = '受付停止中';
-            pBadge.style.backgroundColor = '';
-            pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
+        if (pBadge) {
+            if (isAccepting) {
+                pBadge.textContent = '受付中';
+                pBadge.style.backgroundColor = themeColor;
+                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white';
+            } else {
+                pBadge.textContent = '受付停止中';
+                pBadge.style.backgroundColor = '';
+                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
+            }
         }
 
         let basePriceTotal = 0;
@@ -476,9 +502,14 @@ function renderAuthHeader() {
         let percentAdditions = 0;
         let extraFixedPrice = 0;
 
+        // 4. 入力フィールド一覧の生成
         document.getElementById('pFields').innerHTML = fields.map((f, fieldIdx) => {
             let inputHtml = '';
-            const basePriceBadge = f.price > 0 ? `<span class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full ml-1">+¥${f.price.toLocaleString()}</span>` : '';
+            
+            // 基本金額バッジにテーマカラーを適用
+            const basePriceBadge = f.price > 0 
+                ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-full ml-1" style="color: ${themeColor}; background-color: ${themeColor}15;">+¥${f.price.toLocaleString()}</span>` 
+                : '';
 
             if (f.type === 'note') {
                 return `
@@ -512,17 +543,17 @@ function renderAuthHeader() {
                     if (opt.price > 0) {
                         if (isPercent) {
                             const calcVal = Math.round(basePriceTotal * (opt.price / 100));
-                            priceTag = `<span class="text-[10px] text-pink-500 font-black">+${opt.price}% ${calcVal > 0 ? `(+¥${calcVal.toLocaleString()})` : ''}</span>`;
+                            priceTag = `<span class="text-[10px] font-black" style="color: ${themeColor}">+${opt.price}% ${calcVal > 0 ? `(+¥${calcVal.toLocaleString()})` : ''}</span>`;
                             if (optIdx === 0) percentAdditions += opt.price;
                         } else {
-                            priceTag = `<span class="text-[10px] text-pink-500 font-black">+¥${opt.price.toLocaleString()}</span>`;
+                            priceTag = `<span class="text-[10px] font-black" style="color: ${themeColor}">+¥${opt.price.toLocaleString()}</span>`;
                             if (optIdx === 0) extraFixedPrice += opt.price;
                         }
                     }
 
                     return `
                         <label class="flex items-center justify-between text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl">
-                            <span class="flex items-center space-x-2"><input type="${f.type}" ${optIdx === 0 ? 'checked' : ''} disabled><span>${opt.label || ''}</span></span>
+                            <span class="flex items-center space-x-2"><input type="${f.type}" ${optIdx === 0 ? 'checked' : ''} disabled style="accent-color: ${themeColor}"><span>${opt.label || ''}</span></span>
                             ${priceTag}
                         </label>
                     `;
