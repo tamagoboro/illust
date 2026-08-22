@@ -198,6 +198,32 @@
                 alert("送信に失敗しました。時間をおいて再度お試しください。");
             }
         }
+        // 例: 注文送信時の処理の中
+async function handleSubmit() {
+    // 1. 注文データをSupabaseに保存
+    const saved = await LocalDB.saveOrderAsync(orderPayload);
+    
+    if (saved) {
+        // 2. クリエイターのDiscord Webhook URLを取得
+        const webhookUrl = await LocalDB.getCreatorWebhookUrlAsync(orderPayload.creator_user_id);
+        
+        // 3. Webhook URLが存在すればDiscordへ通知を送る
+        if (webhookUrl) {
+            try {
+                await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `🔔 **新しい依頼が届きました！**\n**お名前:** ${orderPayload.client_name}\n**金額:** ¥${orderPayload.total_price.toLocaleString()}`
+                    })
+                });
+            } catch (err) {
+                console.error("Discord通知失敗:", err);
+            }
+        }
+        alert("送信が完了しました！");
+    }
+}
     </script>
 </body>
 </html>
