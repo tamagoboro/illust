@@ -86,7 +86,7 @@ const LocalDB = {
             .from('forms')
             .select('*')
             .eq('handle', handle)
-            .single();
+            .maybeSingle(); // ← single() から maybeSingle() に修正してエラー防止
         if (error) return null;
         return data;
     },
@@ -134,8 +134,8 @@ const LocalDB = {
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
-        if (error && error.code !== 'PGRST116') console.error(error);
+            .maybeSingle(); // ← single() から maybeSingle() に修正して 406 エラー解消
+        if (error) console.error(error);
         return data || null;
     },
 
@@ -161,7 +161,7 @@ const LocalDB = {
             .from('profiles')
             .select('discord_webhook_url')
             .eq('id', creatorUserId)
-            .single();
+            .maybeSingle(); // ← single() から maybeSingle() に修正
         if (error) return null;
         return data ? data.discord_webhook_url : null;
     }
