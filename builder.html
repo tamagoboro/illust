@@ -19,57 +19,109 @@
             <div class="bg-pink-500 text-white font-black px-3 py-1.5 rounded-2xl text-lg shadow-sm -rotate-2">🎨 フォーム工房</div>
             <span class="text-xs font-bold text-slate-400">フォームエディタ</span>
         </div>
+        
         <!-- ログイン状態に応じて動的にボタン等を切り替えるエリア -->
         <div id="authSection" class="flex items-center space-x-3"></div>
     </header>
 
-    <!-- メインコンテンツ（左: 設定エディタ / 右: リアルタイムプレビュー） -->
+    <!-- テンプレート選択モーダル -->
+    <div id="templateModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999]">
+        <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-lg">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4 relative border-4 border-amber-100 max-h-[85vh] flex flex-col">
+                <div class="relative pr-8 flex-shrink-0">
+                    <button onclick="closeTemplateModal()" class="absolute -top-1 right-0 w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full font-black text-sm transition">✕</button>
+                    <h3 class="text-xl font-black text-slate-800 text-center">🎯 テンプレートを選択</h3>
+                    <p class="text-xs font-bold text-slate-400 text-center mt-1">現在の入力内容は上書きされます。適用したい職種を選んでください。</p>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 overflow-y-auto pr-1">
+                    <button onclick="applyTemplate('illustration')" class="p-4 bg-pink-50/60 hover:bg-pink-100 border-2 border-pink-200 rounded-2xl text-left transition space-y-1 group">
+                        <div class="text-2xl group-hover:scale-110 transition-transform inline-block">🎨</div>
+                        <div class="font-black text-slate-800 text-xs">イラスト・立ち絵依頼</div>
+                        <div class="text-[10px] text-slate-400 font-bold leading-tight">描画範囲・商用利用・人物追加などの標準設問</div>
+                    </button>
+
+                    <button onclick="applyTemplate('vtuber')" class="p-4 bg-purple-50/60 hover:bg-purple-100 border-2 border-purple-200 rounded-2xl text-left transition space-y-1 group">
+                        <div class="text-2xl group-hover:scale-110 transition-transform inline-block">👾</div>
+                        <div class="font-black text-slate-800 text-xs">Live2D / VTuberモデル</div>
+                        <div class="text-[10px] text-slate-400 font-bold leading-tight">パーツ分け・表情差分・キーモデリング項目</div>
+                    </button>
+
+                    <button onclick="applyTemplate('mix')" class="p-4 bg-sky-50/60 hover:bg-sky-100 border-2 border-sky-200 rounded-2xl text-left transition space-y-1 group">
+                        <div class="text-2xl group-hover:scale-110 transition-transform inline-block">🎤</div>
+                        <div class="font-black text-slate-800 text-xs">歌ってみた Mix / 音楽</div>
+                        <div class="text-[10px] text-slate-400 font-bold leading-tight">ワンコーラス/フル・ピッチ補正・ハモリ作成</div>
+                    </button>
+
+                    <button onclick="applyTemplate('video')" class="p-4 bg-emerald-50/60 hover:bg-emerald-100 border-2 border-emerald-200 rounded-2xl text-left transition space-y-1 group">
+                        <div class="text-2xl group-hover:scale-110 transition-transform inline-block">🎬</div>
+                        <div class="font-black text-slate-800 text-xs">動画編集 / MV制作</div>
+                        <div class="text-[10px] text-slate-400 font-bold leading-tight">動画尺・テロップ入れ・サムネイル作成</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
     <div class="flex-1 flex max-w-7xl mx-auto w-full p-6 gap-6 flex-col lg:flex-row">
         
-        <!-- 2. 左側：エディタエリア（フォーム作成・編集UI） -->
+        <!-- 左側：エディタエリア -->
         <div class="w-full lg:w-7/12 space-y-6">
             
-<!-- 基本・デザイン設定の中に配置 -->
-<div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
-    <h2 class="font-black text-slate-800 text-base">✨ 基本・デザイン設定</h2>
-    <div class="grid grid-cols-2 gap-4 items-center">
-        <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">メインテーマカラー</label>
-            <input type="color" id="themeColor" value="#ec4899" onchange="updatePreview()" class="h-10 w-20 rounded-xl border-2 border-slate-200 cursor-pointer">
-        </div>
-        <div>
-            <label class="text-xs font-bold text-slate-500 block mb-1">フォームID (公開URLの末尾)</label>
-            <input type="text" id="handleInput" placeholder="例: order_form_1" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
-        </div>
-    </div>
+            <!-- (A) 基本・デザイン設定 -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
+                <h2 class="font-black text-slate-800 text-base">✨ 基本・デザイン設定</h2>
+                <div class="grid grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 block mb-1">メインテーマカラー</label>
+                        <input type="color" id="themeColor" value="#ec4899" onchange="updatePreview()" class="h-10 w-20 rounded-xl border-2 border-slate-200 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 block mb-1">フォームID (公開URLの末尾)</label>
+                        <input type="text" id="handleInput" placeholder="例: order_form_1" class="w-full px-3 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
+                    </div>
+                </div>
 
-    <!-- 🟢 追加：受付ステータスの切り替えスイッチ -->
-    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-        <div>
-            <span class="text-xs font-black text-slate-700 block">受付ステータス</span>
-            <span class="text-[10px] font-bold text-slate-400">「停止」にすると公開フォームで送信不可になります</span>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="isAccepting" checked onchange="updatePreview()" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-        </label>
-    </div>
-</div>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-black text-slate-700 block">受付ステータス</span>
+                        <span class="text-[10px] font-bold text-slate-400">「停止」にすると公開フォームで送信不可になります</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="isAccepting" checked onchange="updatePreview()" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            </div>
 
-            <!-- (B) フォームのタイトル・説明文 -->
+            <!-- (B) フォーム基本情報 -->
             <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-4">
                 <h2 class="font-black text-slate-800 text-base">📝 フォーム基本情報</h2>
                 <input type="text" id="formTitle" value="ご依頼・お仕事申請フォーム" oninput="updatePreview()" class="w-full px-4 py-3 text-lg font-black bg-slate-50 border-2 border-slate-200 rounded-2xl">
                 <textarea id="formDesc" oninput="updatePreview()" rows="2" class="w-full px-4 py-2.5 text-xs font-bold bg-slate-50 border-2 border-slate-200 rounded-2xl" placeholder="注意事項などを入力してください"></textarea>
             </div>
 
-            <!-- (C) カスタム設問リスト編集エリア -->
+            <!-- (C) 送信完了画面（サンクスページ）設定 -->
+            <div class="bg-white rounded-3xl p-6 shadow-sm border-2 border-slate-100 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-black text-slate-800 text-base">🎉 送信完了画面（サンクスページ）</h2>
+                    <span class="text-[10px] font-bold text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">新機能</span>
+                </div>
+                <p class="text-xs font-bold text-slate-400">フォーム送信後にクライアントに表示されるお礼や返信までの目安時間を設定できます。</p>
+                <textarea id="thanksMessage" oninput="updatePreview()" rows="3" class="w-full px-4 py-2.5 text-xs font-bold bg-amber-50/40 border-2 border-amber-100 rounded-2xl" placeholder="ご依頼ありがとうございます！2日以内にX(旧Twitter)のDMまたはメールにてご連絡いたします。"></textarea>
+            </div>
+
+            <!-- (D) カスタム設問リスト編集エリア -->
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
                     <h2 class="font-black text-slate-800 text-base">🧩 カスタム設問項目</h2>
-                    <button onclick="addBlock()" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-black text-xs rounded-full shadow-md">+ 項目を追加</button>
+                    <div class="flex space-x-2">
+                        <button onclick="openTemplateModal()" class="px-3 py-2 bg-amber-400 hover:bg-amber-500 text-slate-800 font-black text-xs rounded-full shadow-md">✨ テンプレートから選ぶ</button>
+                        <button onclick="addBlock()" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-black text-xs rounded-full shadow-md">+ 項目を追加</button>
+                    </div>
                 </div>
-                <!-- 各設問のブロックがJSで生成されてここに入る -->
+                <!-- 各設問のブロック -->
                 <div id="blocksContainer" class="space-y-4"></div>
             </div>
 
@@ -77,29 +129,52 @@
             <button onclick="saveForm()" class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base rounded-2xl shadow-lg transition">🚀 フォームを保存・公開</button>
         </div>
 
-        <!-- 3. 右側：プレビューエリア（端末風UIでリアルタイムに反映） -->
-        <div class="w-full lg:w-5/12 sticky top-20 h-[calc(100vh-100px)] flex flex-col">
-            <div class="bg-white rounded-[40px] shadow-2xl border-8 border-slate-800 p-6 overflow-y-auto flex flex-col justify-between h-full">
-                <div class="space-y-6">
-                    <div>
-                        <span id="pBadge" class="text-[10px] font-black px-3 py-1 rounded-full text-white bg-pink-500">受付中</span>
-                        <h1 id="pTitle" class="text-xl font-black text-slate-800 mt-2"></h1>
-                        <p id="pDesc" class="text-xs font-bold text-slate-400 mt-1 whitespace-pre-wrap"></p>
+        <!-- 右側：プレビューエリア -->
+        <div class="w-full lg:w-5/12 sticky top-20 h-[calc(100vh-100px)] flex flex-col space-y-2">
+            
+            <!-- プレビューモード切り替えタブ -->
+            <div class="flex bg-slate-200/80 p-1 rounded-2xl font-black text-xs">
+                <button id="btnTabInput" onclick="switchPreviewTab('input')" class="flex-1 py-2 rounded-xl bg-white text-slate-800 shadow-sm transition">📄 フォーム入力画面</button>
+                <button id="btnTabThanks" onclick="switchPreviewTab('thanks')" class="flex-1 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition">🎉 送信完了画面</button>
+            </div>
+
+            <!-- スマホ風枠 -->
+            <div class="bg-white rounded-[40px] shadow-2xl border-8 border-slate-800 p-6 overflow-y-auto flex flex-col justify-between flex-1">
+                
+                <!-- タブ1: フォーム入力画面プレビュー -->
+                <div id="pvInputView" class="flex flex-col justify-between h-full">
+                    <div class="space-y-6">
+                        <div>
+                            <span id="pBadge" class="text-[10px] font-black px-3 py-1 rounded-full text-white bg-pink-500">受付中</span>
+                            <h1 id="pTitle" class="text-xl font-black text-slate-800 mt-2"></h1>
+                            <p id="pDesc" class="text-xs font-bold text-slate-400 mt-1 whitespace-pre-wrap"></p>
+                        </div>
+                        <!-- 動的項目のプレビュー表示先 -->
+                        <div id="pFields" class="space-y-5"></div>
                     </div>
-                    <!-- 動的項目のプレビュー表示先 -->
-                    <div id="pFields" class="space-y-5"></div>
+
+                    <!-- 基本料金等の概算表示プレビュー -->
+                    <div class="mt-6 pt-4 border-t-2 border-slate-100 flex justify-between items-center bg-pink-50/50 p-4 rounded-2xl">
+                        <span class="text-xs font-black text-slate-600">概算見積金額</span>
+                        <span id="pTotalPrice" class="text-xl font-black text-pink-600">¥0</span>
+                    </div>
                 </div>
 
-                <!-- 基本料金等の概算表示プレビュー -->
-                <div class="mt-6 pt-4 border-t-2 border-slate-100 flex justify-between items-center bg-pink-50/50 p-4 rounded-2xl">
-                    <span class="text-xs font-black text-slate-600">概算見積金額</span>
-                    <span id="pTotalPrice" class="text-xl font-black text-pink-600">¥0</span>
+                <!-- タブ2: サンクスページ（完了画面）プレビュー -->
+                <div id="pvThanksView" class="hidden flex-1 flex flex-col items-center justify-center text-center p-4 space-y-4 my-auto">
+                    <div class="w-16 h-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center text-3xl shadow-inner animate-bounce">💌</div>
+                    <h3 class="text-lg font-black text-slate-800">送信が完了しました！</h3>
+                    <div id="pThanksText" class="text-xs font-bold text-slate-600 bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl whitespace-pre-wrap w-full text-left leading-relaxed"></div>
+                    <div class="pt-4 w-full">
+                        <div class="w-full py-3 bg-slate-200 text-slate-500 font-black text-xs rounded-2xl cursor-not-allowed">フォーム画面へ戻る</div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- 4. アカウント認証用ポップアップ（モーダル） -->
+    <!-- アカウント認証用ポップアップ -->
     <div id="loginModal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 relative">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 font-bold">✕</button>
@@ -115,271 +190,405 @@
         </div>
     </div>
 
-    <!-- 5. アプリケーションロジック (JavaScript) -->
-    <script>
-        let currentUser = null; // 現在ログイン中のユーザーオブジェクト
+    <!-- アプリケーションロジック -->
+<script>
+    let currentUser = null;
+    let previewTab = 'input'; // 'input' or 'thanks'
+    let isEditMode = false;   // 編集モードフラグ
+
+    // フォーム項目の初期データ
+    let fields = [
+        { id: 'f_1', label: '【確認事項】ご依頼の前にお読みください', type: 'note', noteText: '※お支払いは着手前にお願いしております。\n※納期は通常2週間〜となります。', price: 0 },
+        { id: 'f_2', label: '基本イラスト制作', type: 'text', price: 10000, required: true },
+        { id: 'f_3', label: '描画範囲（単一選択）', type: 'radio', price: 0, options: [{ label: 'バストアップ', price: 0, priceType: 'fixed' }, { label: '全身', price: 5000, priceType: 'fixed' }], required: true },
+        { id: 'f_4', label: '利用目的・ライセンスオプション', type: 'checkbox', price: 0, options: [
+            { label: '商用利用ライセンス（YouTube収益化等）', price: 50, priceType: 'percent' },
+            { label: '著作権完全譲渡', price: 100, priceType: 'percent' },
+            { label: '人物追加 (+1人)', price: 8000, priceType: 'fixed' }
+        ], required: false }
+    ];
+
+    // テンプレートデータ
+    const FORM_TEMPLATES = {
+        illustration: {
+            title: "イラストご依頼フォーム",
+            desc: "※商用利用や著作権譲渡については選択肢をご指定ください。\n※制作実績としてSNS等に公開させていただく場合がございます。",
+            thanksMessage: "ご依頼メッセージの送信が完了いたしました！\n確認後、通常2日以内にX(旧Twitter)のDMまたはメールアドレスへご連絡させていただきます。今しばらくお待ちくださいませ。",
+            fields: [
+                { id: 'f_1', label: '注意事項', type: 'note', noteText: '納期は通常2週間〜1ヶ月となります。お急ぎの場合は特急料金がかかります。', price: 0 },
+                { id: 'f_2', label: '基本イラスト制作', type: 'text', price: 10000, required: true },
+                { id: 'f_3', label: '描画範囲', type: 'radio', price: 0, options: [{ label: 'バストアップ', price: 0, priceType: 'fixed' }, { label: '太ももまで', price: 3000, priceType: 'fixed' }, { label: '全身', price: 6000, priceType: 'fixed' }], required: true },
+                { id: 'f_4', label: '用途・追加オプション', type: 'checkbox', price: 0, options: [
+                    { label: '商用利用（基本料金の50%加算）', price: 50, priceType: 'percent' },
+                    { label: '著作権譲渡（基本料金の100%加算）', price: 100, priceType: 'percent' },
+                    { label: '人物追加 (+1人)', price: 6000, priceType: 'fixed' },
+                    { label: '背景描き込み', price: 4000, priceType: 'fixed' }
+                ], required: false }
+            ]
+        },
+        vtuber: {
+            title: "Live2Dモデルパーツ分け・制作依頼",
+            desc: "VTuber用キャラデザ・パーツ分けイラストの依頼フォームです。",
+            thanksMessage: "送信ありがとうございました！内容を確認のうえ、担当者より折り返しご連絡いたします。",
+            fields: [
+                { id: 'f_1', label: '基本制作（パーツ分け済み立ち絵）', type: 'text', price: 50000, required: true },
+                { id: 'f_2', label: '三面図作成', type: 'radio', price: 0, options: [{ label: '不要', price: 0, priceType: 'fixed' }, { label: '必要', price: 20000, priceType: 'fixed' }], required: true },
+                { id: 'f_3', label: 'ライセンス・追加オプション', type: 'checkbox', price: 0, options: [
+                    { label: '商用利用ライセンス', price: 50, priceType: 'percent' },
+                    { label: '特殊衣装・小物の追加', price: 10000, priceType: 'fixed' },
+                    { label: '表情差分 4種', price: 8000, priceType: 'fixed' }
+                ], required: false }
+            ]
+        },
+        mix: {
+            title: "歌ってみた Mixご依頼フォーム",
+            desc: "ボーカルピッチ補正・タイミング補正・マスタリング込みの価格です。",
+            thanksMessage: "ご依頼ありがとうございます！音源データ等の不備がないか確認次第ご連絡差し上げます。",
+            fields: [
+                { id: 'f_1', label: '基本Mix料金', type: 'radio', price: 0, options: [{ label: 'ワンコーラス', price: 4000, priceType: 'fixed' }, { label: 'フルサイズ', price: 8000, priceType: 'fixed' }], required: true },
+                { id: 'f_2', label: 'オプション', type: 'checkbox', price: 0, options: [
+                    { label: '商用利用（CD販売・サブスク配信等）', price: 50, priceType: 'percent' },
+                    { label: 'ボーカル1名追加', price: 3000, priceType: 'fixed' },
+                    { label: '特急納品（3日以内）', price: 5000, priceType: 'fixed' }
+                ], required: false }
+            ]
+        },
+        video: {
+            title: "MV・動画編集依頼フォーム",
+            desc: "YouTube動画やオリジナル曲MVの編集をお引き受けします。",
+            thanksMessage: "送信完了いたしました。構成案や素材を確認した上で見積書・スケジュールの回答を送信いたします。",
+            fields: [
+                { id: 'f_1', label: '動画の長さ（基本制作費）', type: 'radio', price: 0, options: [{ label: '3分以内', price: 10000, priceType: 'fixed' }, { label: '5分以内', price: 15000, priceType: 'fixed' }, { label: '10分以内', price: 25000, priceType: 'fixed' }], required: true },
+                { id: 'f_2', label: '権利・追加編集オプション', type: 'checkbox', price: 0, options: [
+                    { label: '商用利用・二次利用権', price: 30, priceType: 'percent' },
+                    { label: 'フルテロップ付け', price: 5000, priceType: 'fixed' },
+                    { label: 'サムネイル作成', price: 3000, priceType: 'fixed' }
+                ], required: false }
+            ]
+        }
+    };
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        currentUser = await AuthApp.getUser();
+        renderAuthHeader();
+
+        const params = new URLSearchParams(window.location.search);
+        const editHandle = params.get('edit');
         
-        // フォーム項目の初期データ配列（デフォルトのサンプル項目）
-        let fields = [
-            { id: 'f_1', label: '【確認事項】ご依頼の前にお読みください', type: 'note', noteText: '※お支払いは着手前にお願いしております。\n※納期は通常2週間〜となります。', price: 0 },
-            { id: 'f_2', label: '基本イラスト制作', type: 'text', price: 10000, required: true },
-            { id: 'f_3', label: '描画範囲（単一選択）', type: 'radio', price: 0, options: [{ label: 'バストアップ', price: 0 }, { label: '全身', price: 5000 }], required: true },
-            { id: 'f_4', label: '追加オプション（複数選択可）', type: 'checkbox', price: 0, options: [{ label: '人物追加 (+1人)', price: 8000 }, { label: '背景追加', price: 3000 }, { label: '商用利用ライセンス', price: 10000 }], required: false }
-        ];
-
-        /**
-         * 画面読み込み時の初期化処理
-         */
-        window.addEventListener('DOMContentLoaded', async () => {
-            // 1. ユーザーのログイン状態チェック＆ヘッダー描画
-            currentUser = await AuthApp.getUser();
-            renderAuthHeader();
-
-            // 2. URL引数に「edit=フォームID」がある場合は既存データの読み込み処理を実行
-            const params = new URLSearchParams(window.location.search);
-            const editHandle = params.get('edit');
-            if (editHandle) {
-                const existing = await LocalDB.getFormSettingsAsync(editHandle);
-                if (existing) {
-                    document.getElementById('handleInput').value = existing.handle;
-                    document.getElementById('handleInput').disabled = true; // 編集時はフォームIDの変更を不可にする
-                    document.getElementById('formTitle').value = existing.title;
-                    document.getElementById('formDesc').value = existing.description || '';
-                    document.getElementById('themeColor').value = existing.theme_color || '#ec4899';
-                    fields = existing.fields || [];
-                }
+        if (editHandle) {
+            isEditMode = true; // 編集モードを有効化
+            const existing = await LocalDB.getFormSettingsAsync(editHandle);
+            if (existing) {
+                const handleInput = document.getElementById('handleInput');
+                handleInput.value = existing.handle;
+                handleInput.disabled = true; // IDの変更を不可にする
+                handleInput.classList.add('bg-slate-200', 'cursor-not-allowed'); // スタイル調整
+                
+                document.getElementById('formTitle').value = existing.title || '';
+                document.getElementById('formDesc').value = existing.description || '';
+                document.getElementById('thanksMessage').value = existing.thanks_message || '';
+                document.getElementById('themeColor').value = existing.theme_color || '#ec4899';
+                document.getElementById('isAccepting').checked = existing.is_accepting !== false;
+                fields = existing.fields || [];
             }
+        } else {
+            document.getElementById('thanksMessage').value = "ご依頼ありがとうございます！2日以内にX(旧Twitter)のDMまたはメールにてご連絡いたします。";
+        }
 
-            // 3. 編集ブロックと右側プレビューの初回レンダリング
-            renderBlocks();
-            updatePreview();
+        renderBlocks();
+        updatePreview();
+    });
+
+    function renderAuthHeader() {
+        const container = document.getElementById('authSection');
+        if (currentUser) {
+            container.innerHTML = `
+                <a href="forms.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📋 マイフォーム</a>
+                <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
+                <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
+            `;
+        } else {
+            container.innerHTML = `<button onclick="openAuthModal()" class="px-4 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">ログイン / 新規登録</button>`;
+        }
+    }
+
+    function openAuthModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+    function closeAuthModal() { document.getElementById('loginModal').classList.add('hidden'); }
+    function openTemplateModal() { document.getElementById('templateModal').classList.remove('hidden'); }
+    function closeTemplateModal() { document.getElementById('templateModal').classList.add('hidden'); }
+
+    function switchPreviewTab(tab) {
+        previewTab = tab;
+        const btnInput = document.getElementById('btnTabInput');
+        const btnThanks = document.getElementById('btnTabThanks');
+        const vInput = document.getElementById('pvInputView');
+        const vThanks = document.getElementById('pvThanksView');
+
+        if (tab === 'input') {
+            btnInput.className = "flex-1 py-2 rounded-xl bg-white text-slate-800 shadow-sm transition";
+            btnThanks.className = "flex-1 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition";
+            vInput.classList.remove('hidden');
+            vThanks.classList.add('hidden');
+        } else {
+            btnThanks.className = "flex-1 py-2 rounded-xl bg-white text-slate-800 shadow-sm transition";
+            btnInput.className = "flex-1 py-2 rounded-xl text-slate-500 hover:text-slate-800 transition";
+            vThanks.classList.remove('hidden');
+            vInput.classList.add('hidden');
+        }
+    }
+
+    async function handleLogin() {
+        try {
+            currentUser = await AuthApp.loginWithEmail(document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
+            renderAuthHeader(); closeAuthModal();
+        } catch (e) { alert("ログイン失敗: " + e.message); }
+    }
+
+    async function handleSignUp() {
+        try {
+            currentUser = await AuthApp.signUpWithEmail(document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
+            renderAuthHeader(); closeAuthModal();
+        } catch (e) { alert("登録失敗: " + e.message); }
+    }
+
+    function renderBlocks() {
+        const container = document.getElementById('blocksContainer');
+        container.innerHTML = fields.map((f, idx) => `
+            <div class="bg-white rounded-2xl p-5 border-2 border-slate-100 space-y-3 shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-black text-pink-500">項目 #${idx + 1}</span>
+                    <button onclick="fields.splice(${idx},1); renderBlocks(); updatePreview();" class="text-xs font-bold text-red-400 hover:text-red-600">削除</button>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" value="${f.label || ''}" oninput="fields[${idx}].label=this.value; updatePreview();" placeholder="タイトル" class="col-span-2 px-3 py-2 text-xs font-bold border-2 border-slate-100 rounded-xl">
+                    <select onchange="changeFieldType(${idx}, this.value)" class="px-2 py-2 text-xs font-bold border-2 border-slate-100 rounded-xl">
+                        <option value="text" ${f.type === 'text' ? 'selected' : ''}>1行テキスト</option>
+                        <option value="textarea" ${f.type === 'textarea' ? 'selected' : ''}>長文テキスト</option>
+                        <option value="color" ${f.type === 'color' ? 'selected' : ''}>カラー指定</option>
+                        <option value="radio" ${f.type === 'radio' ? 'selected' : ''}>単一選択 (ラジオ)</option>
+                        <option value="checkbox" ${f.type === 'checkbox' ? 'selected' : ''}>複数選択 (チェック)</option>
+                        <option value="note" ${f.type === 'note' ? 'selected' : ''}>💡 クリエイター説明文</option>
+                        <option value="faq" ${f.type === 'faq' ? 'selected' : ''}>❓ FAQ（よくある質問）</option>
+                    </select>
+                </div>
+
+                ${f.type === 'note' ? `
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 block">表示する説明文テキスト</label>
+                        <textarea oninput="fields[${idx}].noteText=this.value; updatePreview();" rows="3" class="w-full px-3 py-2 text-xs font-bold bg-amber-50/50 border rounded-xl" placeholder="注意事項や案内文を入力">${f.noteText || ''}</textarea>
+                    </div>
+                ` : f.type === 'faq' ? `
+                    <div class="space-y-2">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 block">質問（Q）</label>
+                            <input type="text" value="${f.label || ''}" oninput="fields[${idx}].label=this.value; updatePreview();" class="w-full px-3 py-1.5 text-xs font-bold border rounded-xl" placeholder="例: 商用利用の範囲は？">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 block">回答（A）</label>
+                            <textarea oninput="fields[${idx}].faqAnswer=this.value; updatePreview();" rows="3" class="w-full px-3 py-2 text-xs font-bold bg-amber-50/50 border rounded-xl" placeholder="例: グッズ販売や動画の収益化配信でご使用いただけます。">${f.faqAnswer || ''}</textarea>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-500 whitespace-nowrap">基本金額:</label>
+                        <input type="number" value="${f.price || 0}" oninput="fields[${idx}].price=Number(this.value); updatePreview();" class="w-32 px-3 py-1.5 text-xs font-bold border rounded-xl" placeholder="0">
+                        <span class="text-xs font-bold text-slate-400">円</span>
+                    </div>
+                `}
+
+                ${(f.type === 'radio' || f.type === 'checkbox') ? `
+                    <div class="pl-2 space-y-2 pt-2 border-t border-slate-100">
+                        <label class="text-[10px] font-bold text-slate-400 block">選択肢と追加金額 (円 または %指定)</label>
+                        ${(f.options || []).map((opt, optIdx) => {
+                            const pType = opt.priceType || 'fixed';
+                            return `
+                            <div class="flex items-center gap-2">
+                                <input type="text" value="${opt.label || ''}" oninput="fields[${idx}].options[${optIdx}].label=this.value; updatePreview();" class="w-full px-3 py-1 text-xs border rounded-lg" placeholder="選択肢名">
+                                
+                                <div class="flex bg-slate-100 p-0.5 rounded-lg border">
+                                    <button onclick="fields[${idx}].options[${optIdx}].priceType='fixed'; renderBlocks(); updatePreview();" class="px-1.5 py-0.5 text-[10px] font-black rounded ${pType === 'fixed' ? 'bg-pink-500 text-white' : 'text-slate-500'}">円</button>
+                                    <button onclick="fields[${idx}].options[${optIdx}].priceType='percent'; renderBlocks(); updatePreview();" class="px-1.5 py-0.5 text-[10px] font-black rounded ${pType === 'percent' ? 'bg-pink-500 text-white' : 'text-slate-500'}">%</button>
+                                </div>
+
+                                <input type="number" value="${opt.price || 0}" oninput="fields[${idx}].options[${optIdx}].price=Number(this.value); updatePreview();" class="w-20 px-2 py-1 text-xs border rounded-lg" placeholder="0">
+                                <span class="text-xs font-bold text-slate-400 w-4">${pType === 'percent' ? '%' : '円'}</span>
+                                <button onclick="fields[${idx}].options.splice(${optIdx},1); renderBlocks(); updatePreview();" class="text-xs text-red-400 px-1">✕</button>
+                            </div>
+                        `;
+                        }).join('')}
+                        <button onclick="fields[${idx}].options.push({label:'新しい選択肢', price:0, priceType:'fixed'}); renderBlocks(); updatePreview();" class="text-[11px] font-black text-pink-500 border border-pink-200 bg-pink-50 px-2 py-1 rounded-lg">+ 選択肢を追加</button>
+                    </div>
+                ` : ''}
+
+                ${(f.type !== 'note' && f.type !== 'faq') ? `
+                    <div class="flex items-center space-x-2 pt-1">
+                        <input type="checkbox" id="req_${idx}" ${f.required ? 'checked' : ''} onchange="fields[${idx}].required=this.checked; updatePreview();">
+                        <label for="req_${idx}" class="text-xs font-bold text-slate-500">必須項目にする</label>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+
+    function changeFieldType(idx, type) {
+        fields[idx].type = type;
+        if ((type === 'radio' || type === 'checkbox') && !fields[idx].options) {
+            fields[idx].options = [{ label: '選択肢 1', price: 0, priceType: 'fixed' }];
+        }
+        renderBlocks(); updatePreview();
+    }
+
+    function addBlock() {
+        fields.push({ id: 'f_' + Date.now(), label: '新しい質問', type: 'text', price: 0, required: false });
+        renderBlocks(); updatePreview();
+    }
+
+    function updatePreview() {
+        const themeColor = document.getElementById('themeColor').value;
+        document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
+        document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
+        
+        const thanksMsg = document.getElementById('thanksMessage').value;
+        document.getElementById('pThanksText').textContent = thanksMsg || "ご依頼ありがとうございます！内容を確認のうえ、ご連絡させていただきます。";
+
+        const isAccepting = document.getElementById('isAccepting').checked;
+        const pBadge = document.getElementById('pBadge');
+
+        if (isAccepting) {
+            pBadge.textContent = '受付中';
+            pBadge.style.backgroundColor = themeColor;
+            pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white';
+        } else {
+            pBadge.textContent = '受付停止中';
+            pBadge.style.backgroundColor = '';
+            pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
+        }
+
+        let basePriceTotal = 0;
+        fields.forEach(f => {
+            if (f.price && f.type !== 'note' && f.type !== 'faq') {
+                basePriceTotal += f.price;
+            }
         });
 
-        /**
-         * ログイン状態に合わせてヘッダー右側の表示項目を更新
-         */
-        function renderAuthHeader() {
-            const container = document.getElementById('authSection');
-            if (currentUser) {
-                container.innerHTML = `
-                    <a href="forms.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📋 マイフォーム</a>
-                    <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
-                    <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
-                `;
-            } else {
-                container.innerHTML = `<button onclick="openAuthModal()" class="px-4 py-2 text-xs font-black text-white bg-pink-500 rounded-xl shadow">ログイン / 新規登録</button>`;
-            }
-        }
+        let percentAdditions = 0;
+        let extraFixedPrice = 0;
 
-        // 認証モーダルの開閉関数
-        function openAuthModal() { document.getElementById('loginModal').classList.remove('hidden'); }
-        function closeAuthModal() { document.getElementById('loginModal').classList.add('hidden'); }
+        document.getElementById('pFields').innerHTML = fields.map((f, fieldIdx) => {
+            let inputHtml = '';
+            const basePriceBadge = f.price > 0 ? `<span class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full ml-1">+¥${f.price.toLocaleString()}</span>` : '';
 
-        /**
-         * ログイン処理
-         */
-        async function handleLogin() {
-            try {
-                currentUser = await AuthApp.loginWithEmail(document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
-                renderAuthHeader(); closeAuthModal();
-            } catch (e) { alert("ログイン失敗: " + e.message); }
-        }
-
-        /**
-         * 新規ユーザー登録処理
-         */
-        async function handleSignUp() {
-            try {
-                currentUser = await AuthApp.signUpWithEmail(document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
-                renderAuthHeader(); closeAuthModal();
-            } catch (e) { alert("登録失敗: " + e.message); }
-        }
-
-        /**
-         * `fields` 配列に基づいて左側の設問編集カード一覧を構築する関数
-         */
-        function renderBlocks() {
-            const container = document.getElementById('blocksContainer');
-            container.innerHTML = fields.map((f, idx) => `
-                <div class="bg-white rounded-2xl p-5 border-2 border-slate-100 space-y-3 shadow-sm">
-                    <!-- カードヘッダー（削除ボタン） -->
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-black text-pink-500">項目 #${idx + 1}</span>
-                        <button onclick="fields.splice(${idx},1); renderBlocks(); updatePreview();" class="text-xs font-bold text-red-400 hover:text-red-600">削除</button>
-                    </div>
-
-                    <!-- 設問タイトル ＆ 種別選択ドロップダウン -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <input type="text" value="${f.label}" oninput="fields[${idx}].label=this.value; updatePreview();" placeholder="タイトル" class="col-span-2 px-3 py-2 text-xs font-bold border-2 border-slate-100 rounded-xl">
-                        <select onchange="changeFieldType(${idx}, this.value)" class="px-2 py-2 text-xs font-bold border-2 border-slate-100 rounded-xl">
-                            <option value="text" ${f.type === 'text' ? 'selected' : ''}>1行テキスト</option>
-                            <option value="textarea" ${f.type === 'textarea' ? 'selected' : ''}>長文テキスト</option>
-                            <option value="color" ${f.type === 'color' ? 'selected' : ''}>カラー指定</option>
-                            <option value="radio" ${f.type === 'radio' ? 'selected' : ''}>単一選択 (ラジオ)</option>
-                            <option value="checkbox" ${f.type === 'checkbox' ? 'selected' : ''}>複数選択 (チェック)</option>
-                            <option value="note" ${f.type === 'note' ? 'selected' : ''}>💡 クリエイター説明文</option>
-                        </select>
-                    </div>
-
-                    <!-- 【条件分岐】説明文テキスト入力 or 基本加算金額の入力 -->
-                    ${f.type === 'note' ? `
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-400 block">表示する説明文テキスト</label>
-                            <textarea oninput="fields[${idx}].noteText=this.value; updatePreview();" rows="3" class="w-full px-3 py-2 text-xs font-bold bg-amber-50/50 border rounded-xl" placeholder="注意事項や案内文を入力">${f.noteText || ''}</textarea>
-                        </div>
-                    ` : `
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-slate-500 whitespace-nowrap">基本加算金額:</label>
-                            <input type="number" value="${f.price || 0}" oninput="fields[${idx}].price=Number(this.value); updatePreview();" class="w-32 px-3 py-1.5 text-xs font-bold border rounded-xl" placeholder="0">
-                            <span class="text-xs font-bold text-slate-400">円</span>
-                        </div>
-                    `}
-
-                    <!-- 【条件分岐】ラジオボタン・チェックボックス時の選択肢編集リスト -->
-                    ${(f.type === 'radio' || f.type === 'checkbox') ? `
-                        <div class="pl-2 space-y-2 pt-2 border-t border-slate-100">
-                            <label class="text-[10px] font-bold text-slate-400 block">選択肢と追加金額</label>
-                            ${(f.options || []).map((opt, optIdx) => `
-                                <div class="flex items-center gap-2">
-                                    <input type="text" value="${opt.label}" oninput="fields[${idx}].options[${optIdx}].label=this.value; updatePreview();" class="w-full px-3 py-1 text-xs border rounded-lg" placeholder="選択肢名">
-                                    <input type="number" value="${opt.price || 0}" oninput="fields[${idx}].options[${optIdx}].price=Number(this.value); updatePreview();" class="w-24 px-2 py-1 text-xs border rounded-lg" placeholder="+円">
-                                    <span class="text-xs font-bold text-slate-400">円</span>
-                                    <button onclick="fields[${idx}].options.splice(${optIdx},1); renderBlocks(); updatePreview();" class="text-xs text-red-400 px-1">✕</button>
-                                </div>
-                            `).join('')}
-                            <button onclick="fields[${idx}].options.push({label:'新しい選択肢', price:0}); renderBlocks(); updatePreview();" class="text-[11px] font-black text-pink-500 border border-pink-200 bg-pink-50 px-2 py-1 rounded-lg">+ 選択肢を追加</button>
-                        </div>
-                    ` : ''}
-
-                    <!-- 必須項目チェックボックス（説明文以外で表示） -->
-                    ${f.type !== 'note' ? `
-                        <div class="flex items-center space-x-2 pt-1">
-                            <input type="checkbox" id="req_${idx}" ${f.required ? 'checked' : ''} onchange="fields[${idx}].required=this.checked; updatePreview();">
-                            <label for="req_${idx}" class="text-xs font-bold text-slate-500">必須項目にする</label>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        /**
-         * フィールドのデータ型（テキスト、ラジオ等）を変更した際の調整関数
-         */
-        function changeFieldType(idx, type) {
-            fields[idx].type = type;
-            // 選択肢系項目に変更された際、空の選択肢を初期割り当てする
-            if ((type === 'radio' || type === 'checkbox') && !fields[idx].options) {
-                fields[idx].options = [{ label: '選択肢 1', price: 0 }];
-            }
-            renderBlocks(); updatePreview();
-        }
-
-        /**
-         * 新しい設問カードを追加する関数
-         */
-        function addBlock() {
-            fields.push({ id: 'f_' + Date.now(), label: '新しい質問', type: 'text', price: 0, required: false });
-            renderBlocks(); updatePreview();
-        }
-
-        /**
-         * 入力データを元に右側の端末プレビューUIをリアルタイム更新する関数
-         */
-        function updatePreview() {
-            // テーマカラーおよびタイトルの反映
-            const themeColor = document.getElementById('themeColor').value;
-            document.getElementById('pBadge').style.backgroundColor = themeColor;
-            document.getElementById('pTitle').textContent = document.getElementById('formTitle').value;
-            document.getElementById('pDesc').textContent = document.getElementById('formDesc').value;
-            const isAccepting = document.getElementById('isAccepting').checked;
-            const pBadge = document.getElementById('pBadge');
-
-            let calculatedTotal = 0;
-
-            if (isAccepting) {
-                pBadge.textContent = '受付中';
-                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-emerald-500';
-            } else {
-                pBadge.textContent = '受付停止中';
-                pBadge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
-            }
-
-            // プレビュー項目の動的HTML生成
-            document.getElementById('pFields').innerHTML = fields.map(f => {
-                let inputHtml = '';
-                const basePriceBadge = f.price > 0 ? `<span class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full ml-1">+¥${f.price.toLocaleString()}</span>` : '';
-
-                // 説明項目のプレビュー表示
-                if (f.type === 'note') {
-                    return `
-                        <div class="bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl text-xs text-amber-900 font-bold whitespace-pre-wrap">
-                            <div class="font-black mb-1 text-amber-800">📌 ${f.label}</div>
-                            ${f.noteText || ''}
-                        </div>
-                    `;
-                }
-
-                // 基本加算料金のプレビュー集計
-                if (f.price) calculatedTotal += f.price;
-
-                // 各タイプに応じたUI要素（無効化状態 `disabled` で表示）
-                if (f.type === 'text') {
-                    inputHtml = `<input type="text" disabled placeholder="入力欄" class="w-full px-3 py-2 bg-slate-50 border-2 rounded-xl text-xs">`;
-                } else if (f.type === 'textarea') {
-                    inputHtml = `<textarea disabled placeholder="入力欄" rows="2" class="w-full px-3 py-2 bg-slate-50 border-2 rounded-xl text-xs"></textarea>`;
-                } else if (f.type === 'color') {
-                    inputHtml = `<input type="color" disabled value="${f.defaultValue || '#3b82f6'}" class="h-8 w-12 rounded border">`;
-                } else if (f.type === 'radio' || f.type === 'checkbox') {
-                    inputHtml = `<div class="space-y-1">${(f.options || []).map(opt => `
-                        <label class="flex items-center justify-between text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl">
-                            <span class="flex items-center space-x-2"><input type="${f.type}" disabled><span>${opt.label}</span></span>
-                            ${opt.price > 0 ? `<span class="text-[10px] text-pink-500 font-black">+¥${opt.price.toLocaleString()}</span>` : ''}
-                        </label>
-                    `).join('')}</div>`;
-                }
-
+            if (f.type === 'note') {
                 return `
-                    <div class="space-y-1">
-                        <label class="text-xs font-black text-slate-700 flex items-center">${f.label} ${f.required ? '<span class="text-red-500 ml-0.5">*</span>' : ''} ${basePriceBadge}</label>
-                        ${inputHtml}
+                    <div class="bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl text-xs text-amber-900 font-bold whitespace-pre-wrap">
+                        <div class="font-black mb-1 text-amber-800">📌 ${f.label || ''}</div>
+                        ${f.noteText || ''}
                     </div>
                 `;
-            }).join('');
-
-            // 概算基本合計金額の反映
-            document.getElementById('pTotalPrice').textContent = `¥${calculatedTotal.toLocaleString()}`;
-        }
-
-        /**
-         * フォームデータ一式を保存する関数
-         */
-        async function saveForm() {
-            // 未ログインの場合はログイン用モーダルを表示
-            if (!currentUser) { openAuthModal(); return; }
-            
-            const handle = document.getElementById('handleInput').value.trim();
-            if (!handle) return alert("フォームIDを入力してください。");
-
-            // 保存データオブジェクトの生成
-            const payload = {
-                user_id: currentUser.id,
-                handle: handle,
-                title: document.getElementById('formTitle').value,
-                description: document.getElementById('formDesc').value,
-                theme_color: document.getElementById('themeColor').value,
-                fields: fields,
-                updated_at: new Date().toISOString()
-            };
-
-            // DBへの非同期保存呼び出し
-            const success = await LocalDB.saveFormSettingsAsync(payload);
-            if (success) {
-                alert("保存しました！マイフォーム一覧へ移動します。");
-                window.location.href = 'forms.html';
-            } else {
-                alert("保存に失敗しました。IDが他のユーザーと重複している可能性があります。");
             }
+
+            if (f.type === 'faq') {
+                return `
+                    <div class="bg-sky-50/60 border-2 border-sky-100 p-4 rounded-2xl space-y-1">
+                        <div class="text-xs font-black text-sky-900">❓ ${f.label || '質問'}</div>
+                        <div class="text-xs font-bold text-slate-600 pl-4 border-l-2 border-sky-300 whitespace-pre-wrap">${f.faqAnswer || ''}</div>
+                    </div>
+                `;
+            }
+
+            if (f.type === 'text') {
+                inputHtml = `<input type="text" disabled placeholder="入力欄" class="w-full px-3 py-2 bg-slate-50 border-2 rounded-xl text-xs">`;
+            } else if (f.type === 'textarea') {
+                inputHtml = `<textarea disabled placeholder="入力欄" rows="2" class="w-full px-3 py-2 bg-slate-50 border-2 rounded-xl text-xs"></textarea>`;
+            } else if (f.type === 'color') {
+                inputHtml = `<input type="color" disabled value="${f.defaultValue || '#3b82f6'}" class="h-8 w-12 rounded border">`;
+            } else if (f.type === 'radio' || f.type === 'checkbox') {
+                inputHtml = `<div class="space-y-1">${(f.options || []).map((opt, optIdx) => {
+                    const isPercent = opt.priceType === 'percent';
+                    let priceTag = '';
+                    
+                    if (opt.price > 0) {
+                        if (isPercent) {
+                            const calcVal = Math.round(basePriceTotal * (opt.price / 100));
+                            priceTag = `<span class="text-[10px] text-pink-500 font-black">+${opt.price}% ${calcVal > 0 ? `(+¥${calcVal.toLocaleString()})` : ''}</span>`;
+                            if (optIdx === 0) percentAdditions += opt.price;
+                        } else {
+                            priceTag = `<span class="text-[10px] text-pink-500 font-black">+¥${opt.price.toLocaleString()}</span>`;
+                            if (optIdx === 0) extraFixedPrice += opt.price;
+                        }
+                    }
+
+                    return `
+                        <label class="flex items-center justify-between text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl">
+                            <span class="flex items-center space-x-2"><input type="${f.type}" ${optIdx === 0 ? 'checked' : ''} disabled><span>${opt.label || ''}</span></span>
+                            ${priceTag}
+                        </label>
+                    `;
+                }).join('')}</div>`;
+            }
+
+            return `
+                <div class="space-y-1">
+                    <label class="text-xs font-black text-slate-700 flex items-center">${f.label || ''} ${f.required ? '<span class="text-red-500 ml-0.5">*</span>' : ''} ${basePriceBadge}</label>
+                    ${inputHtml}
+                </div>
+            `;
+        }).join('');
+
+        const calculatedTotal = basePriceTotal + extraFixedPrice + Math.round(basePriceTotal * (percentAdditions / 100));
+        document.getElementById('pTotalPrice').textContent = `¥${calculatedTotal.toLocaleString()}`;
+    }
+
+    function applyTemplate(type) {
+        const tmpl = FORM_TEMPLATES[type];
+        if (!tmpl) return;
+
+        if (confirm("現在の入力内容がテンプレートで置き換わります。よろしいですか？")) {
+            document.getElementById('formTitle').value = tmpl.title;
+            document.getElementById('formDesc').value = tmpl.desc;
+            if (tmpl.thanksMessage) {
+                document.getElementById('thanksMessage').value = tmpl.thanksMessage;
+            }
+            fields = JSON.parse(JSON.stringify(tmpl.fields)).map((f, i) => ({
+                ...f,
+                id: 'f_' + Date.now() + '_' + i
+            }));
+
+            renderBlocks();
+            updatePreview();
+            closeTemplateModal();
         }
-    </script>
+    }
+
+    async function saveForm() {
+        if (!currentUser) { openAuthModal(); return; }
+        
+        const handle = document.getElementById('handleInput').value.trim();
+        if (!handle) return alert("フォームIDを入力してください。");
+
+        const payload = {
+            user_id: currentUser.id,
+            handle: handle,
+            title: document.getElementById('formTitle').value,
+            description: document.getElementById('formDesc').value,
+            thanks_message: document.getElementById('thanksMessage').value,
+            theme_color: document.getElementById('themeColor').value,
+            is_accepting: document.getElementById('isAccepting').checked,
+            fields: fields,
+            updated_at: new Date().toISOString()
+        };
+// 既存のIDがあれば追加して更新リクエストを送信
+
+        // LocalDB側に編集モード（isEditMode）情報を渡す、またはUpsert処理で保存
+        const success = await LocalDB.saveFormSettingsAsync(payload, isEditMode);
+        if (success) {
+            alert("保存しました！マイフォーム一覧へ移動します。");
+            window.location.href = 'forms.html';
+        } else {
+            alert("保存に失敗しました。フォームIDの権限を確認してください。");
+        }
+    }
+</script>
 </body>
 </html>

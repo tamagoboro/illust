@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>依頼フォーム</title>
+    <title>お申し込み・お仕事依頼 | フォーム工房</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -11,240 +11,191 @@
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
     <style> body { font-family: 'Zen Maru Gothic', sans-serif; } </style>
 </head>
-<body class="bg-slate-50 text-slate-700 min-h-screen p-4 sm:p-8 flex justify-center items-center">
+<body class="bg-amber-50/40 text-slate-700 min-h-screen py-8 px-4 flex justify-center items-start">
 
-    <div class="bg-white rounded-[40px] shadow-2xl border-4 border-slate-100 p-6 sm:p-10 max-w-xl w-full space-y-8">
-        <!-- 1. フォームヘッダー（タイトル・説明文エリア） -->
-        <div>
-            <span id="badge" class="text-xs font-black px-4 py-1.5 rounded-full text-white bg-pink-500 inline-block mb-3">受付中</span>
-            <h1 id="title" class="text-2xl sm:text-3xl font-black text-slate-800">読み込み中...</h1>
-            <p id="desc" class="text-xs sm:text-sm font-bold text-slate-400 mt-2 whitespace-pre-wrap"></p>
-        </div>
-
-        <!-- 2. 入力フォーム本体 -->
-        <!-- onchange="calculateTotal()" でフォーム内の選択が変化した際にリアルタイム見積もり計算を実行 -->
-        <form id="orderForm" onsubmit="submitOrder(event)" onchange="calculateTotal()" class="space-y-6">
-            
-            <!-- JSで動的に設問をレンダリングするコンテナ -->
-            <div id="dynamicFields" class="space-y-6"></div>
-
-            <!-- 概算見積もり金額の表示エリア -->
-            <div class="bg-amber-50/80 border-2 border-amber-200/80 rounded-2xl p-4 flex justify-between items-center">
-                <span class="text-xs font-black text-slate-600">現在のお見積もり合計（概算）</span>
-                <span id="calculatedTotalDisplay" class="text-2xl font-black text-pink-600">¥0</span>
+    <div class="bg-white rounded-[40px] shadow-xl border-4 border-amber-100 max-w-lg w-full p-6 sm:p-8 space-y-6">
+        
+        <!-- 入力フォームエリア -->
+        <form id="orderForm" onsubmit="submitForm(event)" class="space-y-6">
+            <div>
+                <span id="fBadge" class="text-[10px] font-black px-3 py-1 rounded-full text-white bg-pink-500">受付中</span>
+                <h1 id="fTitle" class="text-2xl font-black text-slate-800 mt-2">読み込み中...</h1>
+                <p id="fDesc" class="text-xs font-bold text-slate-400 mt-2 whitespace-pre-wrap leading-relaxed"></p>
             </div>
 
-            <!-- 依頼者基本情報の入力欄 -->
-            <div class="space-y-4 pt-4 border-t-2 border-slate-100">
-                <h3 class="text-sm font-black text-slate-800">✉️ 依頼者情報</h3>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 block mb-1">お名前・名義 *</label>
-                    <input type="text" id="clientName" required placeholder="山田 太郎" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none">
+            <!-- 依頼者基本情報 -->
+            <div class="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 space-y-3">
+                <h3 class="text-xs font-black text-slate-700">👤 お客様情報</h3>
+                <div class="space-y-2">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500">お名前・名義 <span class="text-red-500">*</span></label>
+                        <input type="text" id="clientName" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500">連絡先メールアドレス <span class="text-red-500">*</span></label>
+                        <input type="email" id="clientEmail" required class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 block mb-1">メールアドレス *</label>
-                    <input type="email" id="clientEmail" required placeholder="your@email.com" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold focus:outline-none">
-                </div>
+            </div>
+
+            <div id="fFields" class="space-y-5"></div>
+
+            <div class="pt-4 border-t-2 border-slate-100 flex justify-between items-center bg-pink-50/50 p-4 rounded-2xl">
+                <span class="text-xs font-black text-slate-600">概算見積金額</span>
+                <span id="fTotalPrice" class="text-2xl font-black text-pink-600">¥0</span>
             </div>
 
             <button type="submit" id="submitBtn" class="w-full py-4 bg-pink-500 hover:bg-pink-600 text-white font-black text-base rounded-2xl shadow-lg transition">送信する</button>
         </form>
+
+        <!-- 送信完了画面 (初期非表示) -->
+        <div id="thanksArea" class="hidden flex flex-col items-center justify-center text-center p-4 space-y-4 my-auto">
+            <div class="w-16 h-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center text-3xl shadow-inner animate-bounce">💌</div>
+            <h3 class="text-xl font-black text-slate-800">送信が完了しました！</h3>
+            <div id="thanksText" class="text-xs font-bold text-slate-600 bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl whitespace-pre-wrap w-full text-left leading-relaxed"></div>
+        </div>
+
     </div>
 
     <script>
-        let currentFormConfig = null;
-        
-        // URLパラメータ（?u=xxxx）から対象フォームのIDを取得
-        const params = new URLSearchParams(window.location.search);
-        const handle = params.get('u');
+        let formConfig = null;
+        let calculatedTotal = 0;
 
-        /**
-         * ページ読み込み時の初期化処理
-         */
         window.addEventListener('DOMContentLoaded', async () => {
-            if (!handle) return alert("フォームURLが無効です。");
+            const params = new URLSearchParams(window.location.search);
+            const handle = params.get('u') || params.get('id') || 'default';
             
-            // LocalDB (Supabase / LocalStorage) からフォームの設定情報を取得
-            currentFormConfig = await LocalDB.getFormSettingsAsync(handle);
-            if (!currentFormConfig) return alert("フォームが見つかりません。");
+            formConfig = await LocalDB.getFormSettingsAsync(handle);
+            if (!formConfig) {
+                document.getElementById('fTitle').textContent = "フォームが見つかりません";
+                document.getElementById('submitBtn').disabled = true;
+                return;
+            }
 
-            // フォーム要素の描画と初期金額計算
             renderForm();
-            calculateTotal();
         });
 
-        // フォームデータを取得した後の処理
-        if (formData.is_accepting === false) {
-            // 1. バッジの表示を変更
-            const badge = document.getElementById('statusBadge');
-            badge.textContent = '現在受付を停止しています';
-            badge.className = 'px-3 py-1 text-xs font-black text-white bg-slate-400 rounded-full';
-
-            // 2. 送信ボタンを無効化（あるいは警告表示に変える）
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '🔒 現在ご依頼を受け付けておりません';
-            submitBtn.className = 'w-full py-4 bg-slate-300 text-white font-black text-base rounded-2xl cursor-not-allowed';
-        }
-
-        /**
-         * 取得した設定データを元に、フォーム要素を動的に画面へ描画する関数
-         */
         function renderForm() {
-            const config = currentFormConfig;
+            document.getElementById('fTitle').textContent = formConfig.title;
+            document.getElementById('fDesc').textContent = formConfig.description || '';
+            document.getElementById('thanksText').textContent = formConfig.thanks_message || 'ご依頼ありがとうございます！内容を確認のうえ、ご連絡させていただきます。';
             
-            // ヘッダー・カラー設定の反映
-            document.getElementById('title').textContent = config.title;
-            document.getElementById('desc').textContent = config.description || '';
-            document.getElementById('badge').style.backgroundColor = config.theme_color || '#ec4899';
-            document.getElementById('submitBtn').style.backgroundColor = config.theme_color || '#ec4899';
+            const badge = document.getElementById('fBadge');
+            if (formConfig.is_accepting === false) {
+                badge.textContent = '受付停止中';
+                badge.className = 'text-[10px] font-black px-3 py-1 rounded-full text-white bg-slate-400';
+                document.getElementById('submitBtn').disabled = true;
+                document.getElementById('submitBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                badge.style.backgroundColor = formConfig.theme_color || '#ec4899';
+            }
 
-            const container = document.getElementById('dynamicFields');
-            
-            // 各フィールド（設問項目）のレンダリング処理
-            container.innerHTML = (config.fields || []).map((f) => {
+            const container = document.getElementById('fFields');
+            container.innerHTML = (formConfig.fields || []).map((f) => {
                 const reqAttr = f.required ? 'required' : '';
-                let fieldHtml = '';
+                const reqMark = f.required ? '<span class="text-red-500 ml-0.5">*</span>' : '';
+                const baseBadge = f.price > 0 ? `<span class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full ml-1">+¥${f.price.toLocaleString()}</span>` : '';
 
-                // 【分岐1】クリエイター用の表示用テキスト（入力不可の説明枠）
                 if (f.type === 'note') {
-                    return `
-                        <div class="bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl text-xs text-amber-900 font-bold whitespace-pre-wrap">
-                            <div class="font-black mb-1 text-amber-800">📌 ${f.label}</div>
-                            ${f.noteText || ''}
-                        </div>
-                    `;
+                    return `<div class="bg-amber-50/60 border-2 border-amber-200/60 p-4 rounded-2xl text-xs text-amber-900 font-bold whitespace-pre-wrap"><div class="font-black mb-1 text-amber-800">📌 ${f.label}</div>${f.noteText || ''}</div>`;
                 }
 
-                // 項目自体に設定された基本加算金額のバッジ表示
-                const priceBadge = f.price > 0 ? `<span class="text-[10px] font-black text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full ml-1">+¥${f.price.toLocaleString()}</span>` : '';
+                if (f.type === 'faq') {
+                    return `<div class="bg-sky-50/60 border-2 border-sky-100 p-4 rounded-2xl space-y-1"><div class="text-xs font-black text-sky-900">❓ ${f.label || '質問'}</div><div class="text-xs font-bold text-slate-600 pl-4 border-l-2 border-sky-300 whitespace-pre-wrap">${f.faqAnswer || ''}</div></div>`;
+                }
 
-                // 【分岐2】テキスト入力（1行）
+                let inputHtml = '';
                 if (f.type === 'text') {
-                    fieldHtml = `<input type="text" data-field-id="${f.id}" data-price="${f.price || 0}" ${reqAttr} class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold">`;
-                
-                // 【分岐3】長文テキスト入力
+                    inputHtml = `<input type="text" name="${f.id}" ${reqAttr} class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-pink-400">`;
                 } else if (f.type === 'textarea') {
-                    fieldHtml = `<textarea data-field-id="${f.id}" data-price="${f.price || 0}" rows="3" ${reqAttr} class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-bold"></textarea>`;
-                
-                // 【分岐4】カラーピッカー
+                    inputHtml = `<textarea name="${f.id}" rows="3" ${reqAttr} class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-xs font-bold focus:outline-none focus:border-pink-400"></textarea>`;
                 } else if (f.type === 'color') {
-                    fieldHtml = `<div class="flex items-center space-x-3"><input type="color" data-field-id="${f.id}" data-price="${f.price || 0}" value="${f.defaultValue || '#3b82f6'}" class="h-10 w-20 rounded-xl border-2 border-slate-100 cursor-pointer"><span class="text-xs font-bold text-slate-400">カラーを選択</span></div>`;
-                
-                // 【分岐5】単一選択（ラジオボタン）
-                } else if (f.type === 'radio') {
-                    fieldHtml = `<div class="space-y-2" data-price="${f.price || 0}">${(f.options || []).map(opt => `
-                        <label class="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 px-4 py-2.5 rounded-2xl border-2 border-slate-100 cursor-pointer">
-                            <span class="flex items-center space-x-2"><input type="radio" name="${f.id}" value="${opt.label}" data-opt-price="${opt.price || 0}" ${reqAttr}> <span>${opt.label}</span></span>
-                            ${opt.price > 0 ? `<span class="text-[11px] font-black text-pink-500">+¥${opt.price.toLocaleString()}</span>` : ''}
-                        </label>
-                    `).join('')}</div>`;
-                
-                // 【分岐6】複数選択（チェックボックス）
-                } else if (f.type === 'checkbox') {
-                    fieldHtml = `<div class="space-y-2" data-price="${f.price || 0}">${(f.options || []).map(opt => `
-                        <label class="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 px-4 py-2.5 rounded-2xl border-2 border-slate-100 cursor-pointer">
-                            <span class="flex items-center space-x-2"><input type="checkbox" name="${f.id}" value="${opt.label}" data-opt-price="${opt.price || 0}"> <span>${opt.label}</span></span>
-                            ${opt.price > 0 ? `<span class="text-[11px] font-black text-pink-500">+¥${opt.price.toLocaleString()}</span>` : ''}
+                    inputHtml = `<input type="color" name="${f.id}" value="#3b82f6" class="h-10 w-16 rounded-xl border-2 border-slate-200 cursor-pointer">`;
+                } else if (f.type === 'radio' || f.type === 'checkbox') {
+                    inputHtml = `<div class="space-y-1.5">${(f.options || []).map((opt) => `
+                        <label class="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl cursor-pointer transition">
+                            <span class="flex items-center space-x-2">
+                                <input type="${f.type}" name="${f.id}" value="${opt.label}" ${f.required && f.type === 'radio' ? 'required' : ''} onchange="calculateTotal()" class="accent-pink-500">
+                                <span>${opt.label}</span>
+                            </span>
+                            ${opt.price > 0 ? `<span class="text-[10px] text-pink-500 font-black">+${opt.priceType === 'percent' ? `${opt.price}%` : `¥${opt.price.toLocaleString()}`}</span>` : ''}
                         </label>
                     `).join('')}</div>`;
                 }
 
-                // フィールド要素の枠組みを組み立てて返す
                 return `
-                    <div class="space-y-2">
-                        <label class="text-xs font-black text-slate-700 flex items-center">${f.label} ${f.required ? '<span class="text-red-500 ml-0.5">*</span>' : ''} ${priceBadge}</label>
-                        ${fieldHtml}
+                    <div class="space-y-1">
+                        <label class="text-xs font-black text-slate-700 flex items-center">${f.label} ${reqMark} ${baseBadge}</label>
+                        ${inputHtml}
                     </div>
                 `;
             }).join('');
+
+            calculateTotal();
         }
 
-        /**
-         * 選択された内容に応じて概算見積もり金額を動的に計算する関数
-         */
         function calculateTotal() {
-            if (!currentFormConfig) return;
-            let total = 0;
+            let basePriceTotal = 0;
+            let percentAdditions = 0;
+            let extraFixedPrice = 0;
 
-            (currentFormConfig.fields || []).forEach(f => {
-                // 説明文要素は計算対象外
-                if (f.type === 'note') return;
-                
-                // 1. 設問自体の基本料金を無条件で加算（設定されている場合）
-                if (f.price) total += f.price;
+            (formConfig.fields || []).forEach(f => {
+                if (f.price && f.type !== 'note' && f.type !== 'faq') basePriceTotal += f.price;
 
-                // 2. ラジオ・チェックボックスで「チェックが入っている選択肢」の追加金額を加算
                 if (f.type === 'radio' || f.type === 'checkbox') {
-                    const checkedElements = document.querySelectorAll(`[name="${f.id}"]:checked`);
-                    checkedElements.forEach(el => {
-                        const optPrice = Number(el.getAttribute('data-opt-price') || 0);
-                        total += optPrice;
+                    const inputs = document.querySelectorAll(`input[name="${f.id}"]:checked`);
+                    inputs.forEach(input => {
+                        const opt = (f.options || []).find(o => o.label === input.value);
+                        if (opt && opt.price > 0) {
+                            if (opt.priceType === 'percent') percentAdditions += opt.price;
+                            else extraFixedPrice += opt.price;
+                        }
                     });
                 }
             });
 
-            // 計算結果を画面上のDOMに反映（3桁カンマ区切りフォーマット）
-            document.getElementById('calculatedTotalDisplay').textContent = `¥${total.toLocaleString()}`;
+            calculatedTotal = basePriceTotal + extraFixedPrice + Math.round(basePriceTotal * (percentAdditions / 100));
+            document.getElementById('fTotalPrice').textContent = `¥${calculatedTotal.toLocaleString()}`;
         }
 
-        /**
-         * フォーム送信処理
-         */
-        async function submitOrder(e) {
-            e.preventDefault(); // ページ再読み込み（デフォルト動作）を防止
+        async function submitForm(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
             const answersArray = [];
 
-            // 各入力要素から回答内容を収集
-            (currentFormConfig.fields || []).forEach((f) => {
-                if (f.type === 'note') return; // 説明文項目は回答データから除外
+            (formConfig.fields || []).forEach(f => {
+                if (f.type === 'note' || f.type === 'faq') return;
 
-                let val = '';
                 if (f.type === 'checkbox') {
-                    // チェックボックス（複数選択）の場合はカンマ区切り文字列に変換
-                    const checked = Array.from(document.querySelectorAll(`[name="${f.id}"]:checked`)).map(el => el.value);
-                    val = checked.join(', ');
-                } else if (f.type === 'radio') {
-                    // ラジオボタンの選択値を取得
-                    const checked = document.querySelector(`[name="${f.id}"]:checked`);
-                    val = checked ? checked.value : '';
+                    const vals = formData.getAll(f.id);
+                    answersArray.push({
+                        label: f.label,
+                        value: vals.join(', ') || '(未選択)'
+                    });
                 } else {
-                    // 入力フォームからテキスト値を取得
-                    const el = document.querySelector(`[data-field-id="${f.id}"]`);
-                    if (el) val = el.value;
+                    answersArray.push({
+                        label: f.label,
+                        value: formData.get(f.id) || '(未入力)'
+                    });
                 }
-
-                answersArray.push({
-                    id: f.id,
-                    label: f.label,
-                    value: val
-                });
             });
 
-            // 算出された最終的な「概算見積もり金額」を回答データ構造へ自動挿入
-            answersArray.push({
-                id: 'estimated_total',
-                label: '【自動算出】概算見積もり金額',
-                value: document.getElementById('calculatedTotalDisplay').textContent
-            });
-
-            // 送信用データの構築
-            const orderData = {
-                form_id: currentFormConfig.id,
-                creator_user_id: currentFormConfig.user_id,
-                client_name: document.getElementById('clientName').value,
-                client_email: document.getElementById('clientEmail').value,
-                answers: answersArray
+            const orderPayload = {
+                creator_user_id: formConfig.user_id,
+                form_handle: formConfig.handle,
+                client_name: document.getElementById('clientName').value.trim(),
+                client_email: document.getElementById('clientEmail').value.trim(),
+                answers: answersArray,
+                total_price: calculatedTotal,
+                created_at: new Date().toISOString()
             };
 
-            // DB保存実行
-            const success = await LocalDB.saveOrderAsync(orderData);
+            const success = await LocalDB.saveOrderAsync(orderPayload);
             if (success) {
-                alert("送信が完了しました！ありがとうございます。");
-                document.getElementById('orderForm').reset();
-                calculateTotal(); // フォームリセットに伴い金額計算も初期状態へ更新
+                document.getElementById('orderForm').classList.add('hidden');
+                document.getElementById('thanksArea').classList.remove('hidden');
             } else {
-                alert("送信エラーが発生しました。");
+                alert("送信に失敗しました。時間をおいて再度お試しください。");
             }
         }
     </script>

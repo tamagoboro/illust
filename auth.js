@@ -30,7 +30,6 @@ const AuthApp = {
 };
 
 const LocalDB = {
-    // 自分の全フォームを取得
     async getMyFormsAsync() {
         const user = await AuthApp.getUser();
         if (!user) return [];
@@ -41,21 +40,34 @@ const LocalDB = {
             .eq('user_id', user.id)
             .order('updated_at', { ascending: false });
         if (error) { console.error(error); return []; }
-        return data;
+        return data || [];
     },
 
-    // フォームの保存・更新
     async saveFormSettingsAsync(payload) {
         const client = getSupabase();
         if (!client) return false;
+
+        // 編集時：すでにIDが存在する場合はUPDATEを実行
+        if (payload.id) {
+            const { error } = await client
+                .from('forms')
+                .update(payload)
+                .eq('id', payload.id)
+                .eq('user_id', payload.user_id);
+
+            if (error) { console.error("Update Error:", error); return false; }
+            return true;
+        }
+
+        // 新規作成時：UPSERTを実行
         const { error } = await client
             .from('forms')
             .upsert(payload, { onConflict: 'handle' });
-        if (error) { console.error(error); return false; }
+
+        if (error) { console.error("Upsert Error:", error); return false; }
         return true;
     },
 
-    // フォーム1件の削除
     async deleteFormAsync(id) {
         const client = getSupabase();
         if (!client) return false;
@@ -67,7 +79,6 @@ const LocalDB = {
         return true;
     },
 
-    // URLハンドルからフォーム取得
     async getFormSettingsAsync(handle) {
         const client = getSupabase();
         if (!client) return null;
@@ -80,7 +91,6 @@ const LocalDB = {
         return data;
     },
 
-    // 回答の送信
     async saveOrderAsync(orderPayload) {
         const client = getSupabase();
         if (!client) return false;
@@ -91,7 +101,6 @@ const LocalDB = {
         return true;
     },
 
-    // 届いた依頼の取得
     async getOrdersAsync() {
         const user = await AuthApp.getUser();
         if (!user) return [];
@@ -102,6 +111,58 @@ const LocalDB = {
             .eq('creator_user_id', user.id)
             .order('created_at', { ascending: false });
         if (error) { console.error(error); return []; }
-        return data;
+        return data || [];
+    },
+
+    async getClientProjectsAsync(email) {
+        const client = getSupabase();
+        if (!client || !email) return [];
+        const { data, error } = await client
+            .from('requests')
+            .select('*')
+            .eq('client_email', email)
+            .order('created_at', { ascending: false });
+        if (error) { console.error(error); return []; }
+        return data || [];
+    },
+
+    async getProfileAsync() {
+        const user = await AuthApp.getUser();
+        if (!user) return null;
+        const client = getSupabase();
+        const { data, error } = await client
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+        if (error && error.code !== 'PGRST116') console.error(error);
+        return data || null;
+    },
+
+    async saveProfileAsync(webhookUrl) {
+        const user = await AuthApp.getUser();
+        if (!user) return false;
+        const client = getSupabase();
+        const { error } = await client
+            .from('profiles')
+            .upsert({
+                id: user.id,
+                discord_webhook_url: webhookUrl,
+                updated_at: new Date().toISOString()
+            });
+        if (error) { console.error(error); return false; }
+        return true;
+    },
+
+    async getCreatorWebhookUrlAsync(creatorUserId) {
+        const client = getSupabase();
+        if (!client || !creatorUserId) return null;
+        const { data, error } = await client
+            .from('profiles')
+            .select('discord_webhook_url')
+            .eq('id', creatorUserId)
+            .single();
+        if (error) return null;
+        return data ? data.discord_webhook_url : null;
     }
 };

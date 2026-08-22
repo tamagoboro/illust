@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>依頼管理ダッシュボード</title>
+    <title>依頼管理ダッシュボード | フォーム工房</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
@@ -15,7 +15,7 @@
 
     <header class="bg-white/80 backdrop-blur border-b-2 border-amber-100 px-6 py-3 flex justify-between items-center sticky top-0 z-30">
         <div class="flex items-center space-x-3">
-            <a href="forms.html" class="bg-pink-500 text-white font-black px-3 py-1.5 rounded-2xl text-lg shadow-sm -rotate-2 inline-block">🎨 フォーム工房</a>
+            <a href="builder.html" class="bg-pink-500 text-white font-black px-3 py-1.5 rounded-2xl text-lg shadow-sm -rotate-2 inline-block">🎨 フォーム工房</a>
             <span class="text-xs font-bold text-slate-400">届いた依頼の確認</span>
         </div>
         <div class="flex items-center space-x-3">
@@ -60,18 +60,22 @@
                     <div class="bg-white rounded-3xl p-6 border-2 border-slate-100 shadow-sm space-y-4">
                         <div class="flex justify-between items-start border-b border-slate-100 pb-3">
                             <div>
-                                <span class="text-[10px] font-black bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full">新規受信</span>
-                                <h3 class="text-base font-black text-slate-800 mt-1">${o.client_name} 様</h3>
-                                <p class="text-xs font-bold text-slate-400">依頼者メール: ${o.client_email}</p>
+                                <span class="text-[10px] font-black bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full">ID: ${o.form_handle || '未設定'}</span>
+                                <h3 class="text-base font-black text-slate-800 mt-2">${o.client_name || '名前なし'} 様</h3>
+                                <p class="text-xs font-bold text-slate-400">Mail: <a href="mailto:${o.client_email}" class="underline text-pink-500">${o.client_email || '-'}</a></p>
                             </div>
-                            <span class="text-[10px] font-bold text-slate-400">${new Date(o.created_at).toLocaleString('ja-JP')}</span>
+                            <div class="text-right">
+                                <span class="text-[10px] font-bold text-slate-400 block mb-1">${new Date(o.created_at).toLocaleString('ja-JP')}</span>
+                                <span class="text-xs font-black text-slate-500">概算見積:</span>
+                                <span class="text-lg font-black text-pink-600 ml-1">¥${(o.total_price || 0).toLocaleString()}</span>
+                            </div>
                         </div>
-                        <div class="space-y-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             ${answersList.map(item => `
-                                <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex justify-between items-center text-xs gap-3">
-                                    <span class="font-bold text-slate-500 shrink-0">${item.label}</span>
-                                    <span class="font-black text-slate-800 text-right break-all flex items-center gap-2">
-                                        ${item.value && item.value.toString().startsWith('#') && item.value.toString().length === 7 ? `<span class="w-4 h-4 rounded-full border inline-block" style="background-color:${item.value}"></span>` : ''}
+                                <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 text-xs">
+                                    <span class="font-bold text-slate-400 block text-[10px]">${item.label}</span>
+                                    <span class="font-bold text-slate-800 break-all mt-0.5 inline-block">
+                                        ${item.value && item.value.toString().startsWith('#') && item.value.toString().length === 7 ? `<span class="w-3.5 h-3.5 rounded-full border inline-block align-middle mr-1" style="background-color:${item.value}"></span>` : ''}
                                         ${item.value || '(未入力)'}
                                     </span>
                                 </div>
