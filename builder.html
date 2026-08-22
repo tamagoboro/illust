@@ -299,12 +299,13 @@
         updatePreview();
     });
 
-    function renderAuthHeader() {
+function renderAuthHeader() {
         const container = document.getElementById('authSection');
         if (currentUser) {
             container.innerHTML = `
                 <a href="forms.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📋 マイフォーム</a>
                 <a href="dashboard.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">📥 依頼一覧</a>
+                <a href="settings.html" class="px-3.5 py-2 text-xs font-black text-slate-700 bg-amber-100 rounded-xl">⚙️ 通知設定</a>
                 <button onclick="AuthApp.logout()" class="px-3 py-1.5 text-xs text-slate-400 bg-slate-100 rounded-xl">ログアウト</button>
             `;
         } else {
