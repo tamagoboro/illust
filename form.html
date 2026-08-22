@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="auth.js"></script>
+    <script src="auth.js?v=2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
     <style> body { font-family: 'Zen Maru Gothic', sans-serif; } </style>
 </head>
@@ -160,6 +160,10 @@
 
         async function submitForm(e) {
             e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送信中...';
+
             const formData = new FormData(e.target);
             const answersArray = [];
 
@@ -190,40 +194,36 @@
                 created_at: new Date().toISOString()
             };
 
+            // 1. Supabaseへ注文保存
             const success = await LocalDB.saveOrderAsync(orderPayload);
+            
             if (success) {
+                // 2. Discordへ通知送信
+                const webhookUrl = await LocalDB.getCreatorWebhookUrlAsync(formConfig.user_id);
+                if (webhookUrl) {
+                    try {
+                        const answerDetails = answersArray.map(a => `• **${a.label}:** ${a.value}`).join('\n');
+                        await fetch(webhookUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                content: `🔔 **新しい依頼が届きました！**\n\n**【フォーム名】** ${formConfig.title}\n**【お名前】** ${orderPayload.client_name}\n**【メール】** ${orderPayload.client_email}\n**【概算金額】** ¥${orderPayload.total_price.toLocaleString()}\n\n**【回答内容】**\n${answerDetails}`
+                            })
+                        });
+                    } catch (err) {
+                        console.error("Discord通知失敗:", err);
+                    }
+                }
+
+                // 3. 画面切替
                 document.getElementById('orderForm').classList.add('hidden');
                 document.getElementById('thanksArea').classList.remove('hidden');
             } else {
                 alert("送信に失敗しました。時間をおいて再度お試しください。");
+                submitBtn.disabled = false;
+                submitBtn.textContent = '送信する';
             }
         }
-        // 例: 注文送信時の処理の中
-async function handleSubmit() {
-    // 1. 注文データをSupabaseに保存
-    const saved = await LocalDB.saveOrderAsync(orderPayload);
-    
-    if (saved) {
-        // 2. クリエイターのDiscord Webhook URLを取得
-        const webhookUrl = await LocalDB.getCreatorWebhookUrlAsync(orderPayload.creator_user_id);
-        
-        // 3. Webhook URLが存在すればDiscordへ通知を送る
-        if (webhookUrl) {
-            try {
-                await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: `🔔 **新しい依頼が届きました！**\n**お名前:** ${orderPayload.client_name}\n**金額:** ¥${orderPayload.total_price.toLocaleString()}`
-                    })
-                });
-            } catch (err) {
-                console.error("Discord通知失敗:", err);
-            }
-        }
-        alert("送信が完了しました！");
-    }
-}
     </script>
 </body>
 </html>
